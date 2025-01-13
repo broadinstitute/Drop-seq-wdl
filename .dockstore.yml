@@ -1,0 +1,30 @@
+version: 1.2
+workflows:
+
+  # combined
+  - name: manual_cell_selection_dropulation
+    subclass: WDL
+    primaryDescriptorPath: /combined/manual_cell_selection_dropulation/manual_cell_selection_dropulation.wdl
+  - name: optimus_auto_cell_selection
+    subclass: WDL
+    primaryDescriptorPath: /combined/optimus_auto_cell_selection/optimus_auto_cell_selection.wdl
+  - name: optimus_auto_dropulation
+    subclass: WDL
+    primaryDescriptorPath: /combined/optimus_auto_dropulation/optimus_auto_dropulation.wdl
+
+  # pipelines
+  - name: cell_classification
+    subclass: WDL
+    primaryDescriptorPath: /pipelines/cell_classification/cell_classification.wdl
+  - name: cell_selection
+    subclass: WDL
+    primaryDescriptorPath: /pipelines/cell_selection/cell_selection.wdl
+  - name: dropseq_cbrb
+    subclass: WDL
+    primaryDescriptorPath: /pipelines/dropseq_cbrb/dropseq_cbrb.wdl
+  - name: optimus_post_processing
+    subclass: WDL
+    primaryDescriptorPath: /pipelines/optimus_post_processing/optimus_post_processing.wdl
+  - name: standard_analysis
+    subclass: WDL
+    primaryDescriptorPath: /pipelines/standard_analysis/standard_analysis.wdl
