@@ -24,7 +24,6 @@ version 1.0
 
 import "discover_gene_meta_genes.wdl"
 import "dropulation.wdl"
-import "../../tasks/common/merge_metrics.wdl"
 import "../../tasks/standard_analysis/call_sex_from_metacells.wdl"
 import "../../tasks/standard_analysis/chimeric_report_edit_distance_collapse.wdl"
 import "../../tasks/standard_analysis/create_meta_cells.wdl"
@@ -144,7 +143,7 @@ workflow standard_analysis {
             output_quantile_file_path = standard_analysis_id + ".transcript_downsampling_deciles.txt"
     }
 
-    if (do_dropulation) {
+    if (do_dropulation && validate_aligned_sam.done) {
         call dropulation.dropulation as dropulation {
             input:
                 standard_analysis_id = standard_analysis_id,
@@ -215,8 +214,7 @@ workflow standard_analysis {
                 input_bams = input_bams,
                 selected_cell_barcodes = selected_cell_barcodes,
                 locus_function_list = locus_function_list,
-                strand_strategy = strand_strategy,
-                ignored_chromosomes = ignored_chromosomes
+                strand_strategy = strand_strategy
         }
     }
 

@@ -2,15 +2,15 @@ version: 1.2
 workflows:
 
   # combined
-  - name: manual_cell_selection_dropulation
+  - name: optimus_dropulation
     subclass: WDL
-    primaryDescriptorPath: /combined/manual_cell_selection_dropulation/manual_cell_selection_dropulation.wdl
-  - name: optimus_auto_cell_selection
+    primaryDescriptorPath: /combined/optimus_dropulation/optimus_dropulation.wdl
+  - name: optimus_cbrb
     subclass: WDL
-    primaryDescriptorPath: /combined/optimus_auto_cell_selection/optimus_auto_cell_selection.wdl
-  - name: optimus_auto_dropulation
+    primaryDescriptorPath: /combined/optimus_cbrb/optimus_cbrb.wdl
+  - name: selection_dropulation
     subclass: WDL
-    primaryDescriptorPath: /combined/optimus_auto_dropulation/optimus_auto_dropulation.wdl
+    primaryDescriptorPath: /combined/selection_dropulation/selection_dropulation.wdl
 
   # pipelines
   - name: cell_classification

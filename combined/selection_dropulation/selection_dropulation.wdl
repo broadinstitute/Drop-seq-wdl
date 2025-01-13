@@ -24,36 +24,24 @@ version 1.0
 
 import "../../pipelines/cell_classification/cell_classification.wdl"
 import "../../pipelines/cell_selection/cell_selection.wdl"
-import "../../pipelines/dropseq_cbrb/dropseq_cbrb.wdl"
-import "../../pipelines/optimus_post_processing/optimus_post_processing.wdl"
 import "../../pipelines/standard_analysis/standard_analysis.wdl"
 
-workflow optimus_auto_dropulation {
+workflow selection_dropulation {
     input {
         # required inputs
         String library_name # v123_10X-GEX-3P_abc_rxn8
-        String experiment_date # 2024-01-01
-        File optimus_bam
-        File optimus_h5ad
-        File gtf
+        File cell_selection_report # <alignment_dir>/<library_name>.cell_selection_report.txt
+        File read_quality_metrics # <alignment_dir>/<library_name>.ReadQualityMetrics.txt
+        Array[File] input_bams
+        File input_digital_expression # <cbrb_dir>/<library_name>.cbrb.digital_expression.txt.gz
+        File raw_digital_expression # <alignment_dir>/<library_name>.digital_expression.txt.gz
+        File raw_digital_expression_summary # <alignment_dir>/<library_name>.digital_expression_summary.txt
+        File chimeric_transcripts # <alignment_dir>/<library_name>.chimeric_transcripts.txt.gz
+        File reads_per_cell_file # <alignment_dir>/<library_name>.numReads_perCell_XC_mq_10.txt.gz
         Boolean do_discover_meta_genes
+        Boolean is_cbrb
 
         # optional inputs
-        Int num_transcripts_threshold = 20
-        Int split_bam_size_gb = 2
-        String? cell_barcode_tag # CB
-        String? molecular_barcode_tag # UB
-        String? chimeric_molecular_barcode_tag # UR
-        Array[String] locus_function_list = [] # ["INTRONIC"]
-        Int? expected_cells
-        Int? total_droplets_included
-        Boolean use_svm_parameter_estimation = true
-        Int num_training_tries = 3
-        Float final_elbo_fail_fraction = 0.1
-        Float? learning_rate
-        String cbrb_other_args = ""
-        String cbrb_docker_image = "us.gcr.io/broad-dsde-methods/cellbender:0.3.2"
-        String cbrb_hardware_zones = "us-central1-a us-central1-c"
         Int? min_umis_per_cell # 500
         Int? max_umis_per_cell
         Int? max_rbmt_per_cell
@@ -61,14 +49,24 @@ workflow optimus_auto_dropulation {
         Float? max_intronic_per_cell
         Float? efficiency_threshold_log10
         String? call_stamps_method # svm_nuclei
+        File? mtx # matrix.mtx.gz
+        File? features # features.tsv.gz
+        File? barcodes # barcodes.tsv.gz
         Boolean is_10x = true
+        File? cbrb_non_empties # <cbrb_dir>/<library_name>.cbrb.selectedCellBarcodes.txt
+        File? cbrb_num_transcripts # <cbrb_dir>/<library_name>.cbrb.num_transcripts.txt
+        File? chimeric_read_metrics_file # <alignment_dir>/<library_name>.chimeric_read_metrics
         Array[File] barcode_metrics_files = []
         File? vcf # <vcf_file>
         File? vcf_idx # <vcf_file_idx>
         File? sample_file # <donor_samples_file>
+        String? cell_barcode_tag # CB
+        String? molecular_barcode_tag # UB
         Array[String] ignored_chromosomes = [] # ["chrX", "chrY", "chrM"]
+        Array[String] locus_function_list = [] # ["INTRONIC"]
         String? strand_strategy # SENSE
         Boolean compute_cbrb_adjusted_likelihoods = true
+        File? cbrb_cell_selection_report # <cbrb_dir>/<library_name>.cbrb.cell_selection_report.txt
         File? sex_caller_config_yaml_file # <sex_caller_config_yaml_file>
         File? census_file
         Float? max_error_rate
@@ -80,50 +78,17 @@ workflow optimus_auto_dropulation {
         Array[Float] doublet_finder_pns = [0.4, 0.45, 0.5]
         Array[Float] doublet_finder_pks = []
         Array[Int] doublet_finder_num_pcs = []
+        String? cbrb_analysis_tag # auto
         File? selected_cell_barcode_file # optional
         File? donor_state_file # optional
         Boolean do_create_metacells_by_cell_type = false
     }
 
-    call optimus_post_processing.optimus_post_processing as optimus_post_processing {
-        input:
-            library_name = library_name,
-            optimus_bam = optimus_bam,
-            optimus_h5ad = optimus_h5ad,
-            gtf = gtf,
-            num_transcripts_threshold = num_transcripts_threshold,
-            split_bam_size_gb = split_bam_size_gb,
-            cell_barcode_tag = cell_barcode_tag,
-            chimeric_molecular_barcode_tag = chimeric_molecular_barcode_tag,
-            locus_function_list = locus_function_list
-    }
-
-    call dropseq_cbrb.dropseq_cbrb as dropseq_cbrb {
-        input:
-            library_name = library_name,
-            experiment_date = experiment_date,
-            raw_digital_expression = optimus_post_processing.digital_expression,
-            read_quality_metrics = optimus_post_processing.read_quality_metrics,
-            cell_selection_report = optimus_post_processing.cell_selection_report,
-            mtx = optimus_post_processing.mtx,
-            features = optimus_post_processing.features,
-            barcodes = optimus_post_processing.barcodes,
-            expected_cells = expected_cells,
-            total_droplets_included = total_droplets_included,
-            use_svm_parameter_estimation = use_svm_parameter_estimation,
-            num_training_tries = num_training_tries,
-            final_elbo_fail_fraction = final_elbo_fail_fraction,
-            learning_rate = learning_rate,
-            cbrb_other_args = cbrb_other_args,
-            cbrb_docker_image = cbrb_docker_image,
-            cbrb_hardware_zones = cbrb_hardware_zones
-    }
-
     call cell_selection.cell_selection as cell_selection {
         input:
             library_name = library_name,
-            cell_selection_report = optimus_post_processing.cell_selection_report,
-            read_quality_metrics = optimus_post_processing.read_quality_metrics,
+            cell_selection_report = cell_selection_report,
+            read_quality_metrics = read_quality_metrics,
             min_umis_per_cell = min_umis_per_cell,
             max_umis_per_cell = max_umis_per_cell,
             max_rbmt_per_cell = max_rbmt_per_cell,
@@ -131,13 +96,13 @@ workflow optimus_auto_dropulation {
             max_intronic_per_cell = max_intronic_per_cell,
             efficiency_threshold_log10 = efficiency_threshold_log10,
             call_stamps_method = call_stamps_method,
-            mtx = optimus_post_processing.mtx,
-            features = optimus_post_processing.features,
-            barcodes = optimus_post_processing.barcodes,
+            mtx = mtx,
+            features = features,
+            barcodes = barcodes,
             is_10x = is_10x,
-            cbrb_non_empties = dropseq_cbrb.cbrb_selected_cell_barcodes,
-            cbrb_num_transcripts = dropseq_cbrb.cbrb_num_transcripts,
-            chimeric_read_metrics_file = optimus_post_processing.chimeric_read_metrics,
+            cbrb_non_empties = cbrb_non_empties,
+            cbrb_num_transcripts = cbrb_num_transcripts,
+            chimeric_read_metrics_file = chimeric_read_metrics_file,
             barcode_metrics_files = barcode_metrics_files
     }
 
@@ -145,15 +110,15 @@ workflow optimus_auto_dropulation {
         input:
             library_name = library_name,
             cell_selection_criteria_label = cell_selection.criteria_label,
-            input_bams = optimus_post_processing.dropseq_bam,
-            input_digital_expression = optimus_post_processing.digital_expression,
-            raw_digital_expression = optimus_post_processing.digital_expression,
-            raw_digital_expression_summary = optimus_post_processing.digital_expression_summary,
-            chimeric_transcripts = optimus_post_processing.chimeric_transcripts,
-            reads_per_cell_file = optimus_post_processing.reads_per_cell,
+            input_bams = input_bams,
+            input_digital_expression = input_digital_expression,
+            raw_digital_expression = raw_digital_expression,
+            raw_digital_expression_summary = raw_digital_expression_summary,
+            chimeric_transcripts = chimeric_transcripts,
+            reads_per_cell_file = reads_per_cell_file,
             selected_cell_barcodes = cell_selection.cell_file,
             do_discover_meta_genes = do_discover_meta_genes,
-            is_cbrb = true,
+            is_cbrb = is_cbrb,
             vcf = vcf,
             vcf_idx = vcf_idx,
             sample_file = sample_file,
@@ -163,7 +128,7 @@ workflow optimus_auto_dropulation {
             locus_function_list = locus_function_list,
             strand_strategy = strand_strategy,
             compute_cbrb_adjusted_likelihoods = compute_cbrb_adjusted_likelihoods,
-            cbrb_cell_selection_report = dropseq_cbrb.cbrb_cell_selection_report,
+            cbrb_cell_selection_report = cbrb_cell_selection_report,
             ambient_cell_barcodes = cell_selection.ambient_cell_file,
             sex_caller_config_yaml_file = sex_caller_config_yaml_file,
             census_file = census_file,
@@ -190,8 +155,8 @@ workflow optimus_auto_dropulation {
                 doublet_finder_pns = doublet_finder_pns,
                 doublet_finder_pks = doublet_finder_pks,
                 doublet_finder_num_pcs = doublet_finder_num_pcs,
-                cbrb_analysis_tag = dropseq_cbrb.cbrb_analysis_tag,
-                cbrb_cell_selection_report = dropseq_cbrb.cbrb_cell_selection_report,
+                cbrb_analysis_tag = cbrb_analysis_tag,
+                cbrb_cell_selection_report = cbrb_cell_selection_report,
                 selected_cell_barcode_file = selected_cell_barcode_file,
                 donor_state_file = donor_state_file,
                 do_create_metacells_by_cell_type = do_create_metacells_by_cell_type
@@ -199,36 +164,6 @@ workflow optimus_auto_dropulation {
     }
 
     output {
-        File dropseq_h5ad = optimus_post_processing.dropseq_h5ad
-        File digital_expression = optimus_post_processing.digital_expression
-        File digital_expression_summary = optimus_post_processing.digital_expression_summary
-        File mtx = optimus_post_processing.mtx
-        File features = optimus_post_processing.features
-        File barcodes = optimus_post_processing.barcodes
-        File reads_per_cell = optimus_post_processing.reads_per_cell
-        File read_quality_metrics = optimus_post_processing.read_quality_metrics
-        File cell_selection_report = optimus_post_processing.cell_selection_report
-        Array[File] dropseq_bam = optimus_post_processing.dropseq_bam
-        File dropseq_bam_manifest = optimus_post_processing.dropseq_bam_manifest
-        File chimeric_transcripts = optimus_post_processing.chimeric_transcripts
-        File chimeric_read_metrics = optimus_post_processing.chimeric_read_metrics
-        String cbrb_analysis_tag = dropseq_cbrb.cbrb_analysis_tag
-        File cbrb_summary_pdf = dropseq_cbrb.cbrb_summary_pdf
-        File cbrb_cell_barcodes_csv = dropseq_cbrb.cbrb_cell_barcodes_csv
-        File cbrb_metrics_csv = dropseq_cbrb.cbrb_metrics_csv
-        File cbrb_html_report = dropseq_cbrb.cbrb_html_report
-        File cbrb_h5 = dropseq_cbrb.cbrb_h5
-        File cbrb_checkpoint_file = dropseq_cbrb.cbrb_checkpoint_file
-        File cbrb_plateau_pdf = dropseq_cbrb.cbrb_plateau_pdf
-        File cbrb_digital_expression = dropseq_cbrb.cbrb_digital_expression
-        File cbrb_num_transcripts = dropseq_cbrb.cbrb_num_transcripts
-        File cbrb_contam_fraction_params = dropseq_cbrb.cbrb_contam_fraction_params
-        File cbrb_elbo_table = dropseq_cbrb.cbrb_elbo_table
-        File cbrb_tearsheet_pdf = dropseq_cbrb.cbrb_tearsheet_pdf
-        File cbrb_pdf = dropseq_cbrb.cbrb_pdf
-        File cbrb_selected_cell_barcodes = dropseq_cbrb.cbrb_selected_cell_barcodes
-        File cbrb_cell_selection_report = dropseq_cbrb.cbrb_cell_selection_report
-        File cbrb_tearsheet_txt = dropseq_cbrb.cbrb_tearsheet_txt
         String cell_selection_criteria_label = cell_selection.criteria_label
         File cell_selection_cell_file = cell_selection.cell_file
         File cell_selection_cell_features_rds = cell_selection.cell_features_rds
@@ -245,8 +180,6 @@ workflow optimus_auto_dropulation {
         File transcript_downsampling_deciles = standard_analysis.transcript_downsampling_deciles
         File transcript_downsampling_pdf = standard_analysis.transcript_downsampling_pdf
         File transcript_downsampling_summary = standard_analysis.transcript_downsampling_summary
-        File? cbrb_svm_cbrb_parameter_estimation_pdf = dropseq_cbrb.cbrb_svm_cbrb_parameter_estimation_pdf
-        File? cbrb_svm_cbrb_parameter_estimation_txt = dropseq_cbrb.cbrb_svm_cbrb_parameter_estimation_txt
         File? ambient_digital_expression = standard_analysis.ambient_digital_expression
         File? ambient_digital_expression_summary = standard_analysis.ambient_digital_expression_summary
         File? ambient_metacells = standard_analysis.ambient_metacells

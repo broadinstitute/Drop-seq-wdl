@@ -51,14 +51,13 @@ task tag_read_with_gene_function {
     command <<<
         set -euo pipefail
 
-        mem_unit=${MEM_UNIT%?}
+        mem_unit=$(echo "${MEM_UNIT:-}" | cut -c 1)
         if [[ $mem_unit == "M" ]]; then
             mem_size=$(awk "BEGIN {print int($MEM_SIZE)}")
         elif [[ $mem_unit == "G" ]]; then
             mem_size=$(awk "BEGIN {print int($MEM_SIZE * 1024)}")
         else
-            echo "Unsupported memory unit: $MEM_UNIT" 1>&2
-            exit 1
+            mem_size=$(free -m | awk '/^Mem/ {print $2}')
         fi
         mem_size=$(awk "BEGIN {print int($mem_size * 7 / 8)}")
 

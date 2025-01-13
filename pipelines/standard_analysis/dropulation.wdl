@@ -164,24 +164,6 @@ workflow dropulation {
             output_file_path = standard_analysis_id + ".doublets.txt"
     }
 
-    call filter_dge.filter_dge as filter_dge_donors {
-        input:
-            input_expression = selected_digital_expression,
-            input_summary = selected_digital_expression_summary,
-            donor_cell_barcodes = donor_assignment_qc.out_cell_barcodes_file,
-            output_header = true,
-            output_file_path = standard_analysis_id + ".donors.digital_expression.txt.gz",
-            output_summary_file_path = standard_analysis_id + ".donors.digital_expression_summary.txt"
-    }
-
-    call create_meta_cells.create_meta_cells as create_meta_cells_selected {
-        input:
-            input_expression = selected_digital_expression,
-            donor_cell_map = donor_assignment_qc.out_donor_to_cell_map,
-            output_file_path = standard_analysis_id + ".meta_cell.expression.txt",
-            metrics_file_path = standard_analysis_id + ".meta_cell_metrics"
-    }
-
     call donor_assignment_qc.donor_assignment_qc as donor_assignment_qc {
         input:
             doublet_likelihood_file = merge_doublet_assignments.output_file,
@@ -198,7 +180,25 @@ workflow dropulation {
             out_cell_barcodes_file_path = standard_analysis_id + ".donorCellBarcodes.txt",
             out_file_likely_donors_path = standard_analysis_id + ".donor_list.txt",
             out_pdf_path = standard_analysis_id + ".dropulation_report.pdf",
-            out_tear_sheet_pdf = standard_analysis_id + ".dropulation_tearsheet.pdf"
+            out_tear_sheet_pdf_path = standard_analysis_id + ".dropulation_tearsheet.pdf"
+    }
+
+    call filter_dge.filter_dge as filter_dge_donors {
+        input:
+            input_expression = selected_digital_expression,
+            input_summary = selected_digital_expression_summary,
+            donor_cell_barcodes = donor_assignment_qc.out_cell_barcodes_file,
+            output_header = true,
+            output_file_path = standard_analysis_id + ".donors.digital_expression.txt.gz",
+            output_summary_file_path = standard_analysis_id + ".donors.digital_expression_summary.txt"
+    }
+
+    call create_meta_cells.create_meta_cells as create_meta_cells_selected {
+        input:
+            input_expression = selected_digital_expression,
+            donor_cell_map = donor_assignment_qc.out_donor_to_cell_map,
+            output_file_path = standard_analysis_id + ".meta_cell.expression.txt",
+            metrics_file_path = standard_analysis_id + ".meta_cell_metrics"
     }
 
     output {
