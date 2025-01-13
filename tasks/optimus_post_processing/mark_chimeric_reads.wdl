@@ -32,6 +32,7 @@ task mark_chimeric_reads {
         String? molecular_barcode_tag # UB
         File? cell_bc_file
         Array[String] locus_function_list = []
+        String? strand_strategy
         String validation_stringency = "SILENT"
 
         # required outputs
@@ -55,14 +56,13 @@ task mark_chimeric_reads {
     command <<<
         set -euo pipefail
 
-        mem_unit=${MEM_UNIT%?}
+        mem_unit=$(echo "${MEM_UNIT:-}" | cut -c 1)
         if [[ $mem_unit == "M" ]]; then
             mem_size=$(awk "BEGIN {print int($MEM_SIZE)}")
         elif [[ $mem_unit == "G" ]]; then
             mem_size=$(awk "BEGIN {print int($MEM_SIZE * 1024)}")
         else
-            echo "Unsupported memory unit: $MEM_UNIT" 1>&2
-            exit 1
+            mem_size=$(free -m | awk '/^Mem/ {print $2}')
         fi
         mem_size=$(awk "BEGIN {print int($mem_size * 7 / 8)}")
 
@@ -73,6 +73,7 @@ task mark_chimeric_reads {
             ~{if defined(molecular_barcode_tag) then "--MOLECULAR_BARCODE_TAG " + molecular_barcode_tag else ""} \
             ~{if defined(cell_bc_file) then "--CELL_BC_FILE " + cell_bc_file else ""} \
             ~{sep=" " prefix("--LOCUS_FUNCTION_LIST ", locus_function_list)} \
+            ~{if defined(strand_strategy) then "--STRAND_STRATEGY " + strand_strategy else ""} \
             --OUTPUT_REPORT ~{output_report_path} \
             --METRICS ~{output_metrics_path} \
             --VALIDATION_STRINGENCY ~{validation_stringency}

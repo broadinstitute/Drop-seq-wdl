@@ -44,7 +44,6 @@ workflow discover_gene_meta_genes {
         String gmg_gene_name_tag = "mn"
         String gmg_gene_strand_tag = "ms"
         String gmg_gene_function_tag = "mf"
-        Array[String] ignored_chromosomes = [] # ["chrX", "chrY", "chrM"]
         Array[String] locus_function_list = [] # ["INTRONIC"]
         String? strand_strategy # SENSE
     }

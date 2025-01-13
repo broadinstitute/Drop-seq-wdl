@@ -43,6 +43,7 @@ workflow optimus_post_processing {
         String? cell_barcode_tag # CB
         String? chimeric_molecular_barcode_tag # UR
         Array[String] locus_function_list = [] # ["INTRONIC"]
+        String? strand_strategy # SENSE
     }
 
     call optimus_h5ad_to_dropseq.optimus_h5ad_to_dropseq as optimus_h5ad_to_dropseq {
@@ -95,6 +96,7 @@ workflow optimus_post_processing {
                 molecular_barcode_tag = chimeric_molecular_barcode_tag,
                 cell_bc_file = select_first([optimus_h5ad_to_dropseq.output_barcodes]),
                 locus_function_list = locus_function_list,
+                strand_strategy = strand_strategy,
                 output_report_path = library_name + "." + idx + ".chimeric_transcripts.txt.gz",
                 output_metrics_path = library_name + "." + idx + ".chimeric_read_metrics"
         }

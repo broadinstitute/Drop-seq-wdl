@@ -43,7 +43,7 @@ task donor_assignment_qc {
         String out_cell_barcodes_file_path
         String out_file_likely_donors_path
         String out_pdf_path
-        String out_tear_sheet_pdf
+        String out_tear_sheet_pdf_path
 
         # runtime values
         String docker = "us.gcr.io/mccarroll-scrna-seq/drop-seq_private_r:current"
@@ -74,7 +74,7 @@ task donor_assignment_qc {
                 outSummaryStatsFile="~{out_summary_stats_file_path}",
                 expectedSamplesFile="~{expected_samples_file}",
                 outCellBarcodesFile="~{out_cell_barcodes_file_path}",
-                outTearSheetPDF="~{out_tear_sheet_pdf}"
+                outTearSheetPDF="~{out_tear_sheet_pdf_path}"
             )' \
             -e 'message(date(), " Done ", "donorAssignmentQC")'
 
@@ -96,6 +96,6 @@ task donor_assignment_qc {
         File out_cell_barcodes_file = out_cell_barcodes_file_path
         File out_file_likely_donors = out_file_likely_donors_path
         File out_pdf = out_pdf_path
-        File out_tear_sheet_pdf = out_tear_sheet_pdf
+        File out_tear_sheet_pdf = out_tear_sheet_pdf_path
     }
 }

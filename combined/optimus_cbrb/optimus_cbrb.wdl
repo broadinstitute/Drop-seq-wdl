@@ -22,11 +22,10 @@
 
 version 1.0
 
-import "../../pipelines/cell_selection/cell_selection.wdl"
 import "../../pipelines/dropseq_cbrb/dropseq_cbrb.wdl"
 import "../../pipelines/optimus_post_processing/optimus_post_processing.wdl"
 
-workflow optimus_auto_cell_selection {
+workflow optimus_cbrb {
     input {
         # required inputs
         String library_name # v123_10X-GEX-3P_abc_rxn8
@@ -36,29 +35,21 @@ workflow optimus_auto_cell_selection {
         File gtf
 
         # optional inputs
-        Int? min_umis_per_cell # 500
-        Int? max_umis_per_cell
-        Int? max_rbmt_per_cell
-        Float? min_intronic_per_cell # 0.55
-        Float? max_intronic_per_cell
-        Float? efficiency_threshold_log10
-        String? call_stamps_method # svm_nuclei
         Int num_transcripts_threshold = 20
         Int split_bam_size_gb = 2
         String? cell_barcode_tag # CB
         String? chimeric_molecular_barcode_tag # UR
         Array[String] locus_function_list = [] # ["INTRONIC"]
+        String? strand_strategy # SENSE
         Int? expected_cells
         Int? total_droplets_included
         Boolean use_svm_parameter_estimation = true
         Int num_training_tries = 3
         Float final_elbo_fail_fraction = 0.1
-        Float? learning_rate
+        Float learning_rate = 0.00005
         String cbrb_other_args = ""
         String cbrb_docker_image = "us.gcr.io/broad-dsde-methods/cellbender:0.3.2"
         String cbrb_hardware_zones = "us-central1-a us-central1-c"
-        Boolean is_10x = true
-        Array[File] barcode_metrics_files = []
     }
 
     call optimus_post_processing.optimus_post_processing as optimus_post_processing {
@@ -71,7 +62,8 @@ workflow optimus_auto_cell_selection {
             split_bam_size_gb = split_bam_size_gb,
             cell_barcode_tag = cell_barcode_tag,
             chimeric_molecular_barcode_tag = chimeric_molecular_barcode_tag,
-            locus_function_list = locus_function_list
+            locus_function_list = locus_function_list,
+            strand_strategy = strand_strategy
     }
 
     call dropseq_cbrb.dropseq_cbrb as dropseq_cbrb {
@@ -93,28 +85,6 @@ workflow optimus_auto_cell_selection {
             cbrb_other_args = cbrb_other_args,
             cbrb_docker_image = cbrb_docker_image,
             cbrb_hardware_zones = cbrb_hardware_zones
-    }
-
-    call cell_selection.cell_selection as cell_selection {
-        input:
-            library_name = library_name,
-            cell_selection_report = optimus_post_processing.cell_selection_report,
-            read_quality_metrics = optimus_post_processing.read_quality_metrics,
-            min_umis_per_cell = min_umis_per_cell,
-            max_umis_per_cell = max_umis_per_cell,
-            max_rbmt_per_cell = max_rbmt_per_cell,
-            min_intronic_per_cell = min_intronic_per_cell,
-            max_intronic_per_cell = max_intronic_per_cell,
-            efficiency_threshold_log10 = efficiency_threshold_log10,
-            call_stamps_method = call_stamps_method,
-            mtx = optimus_post_processing.mtx,
-            features = optimus_post_processing.features,
-            barcodes = optimus_post_processing.barcodes,
-            is_10x = is_10x,
-            cbrb_non_empties = dropseq_cbrb.cbrb_selected_cell_barcodes,
-            cbrb_num_transcripts = dropseq_cbrb.cbrb_num_transcripts,
-            chimeric_read_metrics_file = optimus_post_processing.chimeric_read_metrics,
-            barcode_metrics_files = barcode_metrics_files
     }
 
     output {
@@ -148,14 +118,6 @@ workflow optimus_auto_cell_selection {
         File cbrb_selected_cell_barcodes = dropseq_cbrb.cbrb_selected_cell_barcodes
         File cbrb_cell_selection_report = dropseq_cbrb.cbrb_cell_selection_report
         File cbrb_tearsheet_txt = dropseq_cbrb.cbrb_tearsheet_txt
-        String cell_selection_criteria_label = cell_selection.criteria_label
-        File cell_selection_cell_file = cell_selection.cell_file
-        File cell_selection_cell_features_rds = cell_selection.cell_features_rds
-        File cell_selection_ambient_cell_file = cell_selection.ambient_cell_file
-        File cell_selection_pdf = cell_selection.pdf
-        File cell_selection_summary_file = cell_selection.summary_file
-        File cell_selection_dropped_non_empties_file = cell_selection.dropped_non_empties_file
-        File cell_selection_standard_analysis_tear_sheet = cell_selection.standard_analysis_tear_sheet
         File? cbrb_svm_cbrb_parameter_estimation_pdf = dropseq_cbrb.cbrb_svm_cbrb_parameter_estimation_pdf
         File? cbrb_svm_cbrb_parameter_estimation_txt = dropseq_cbrb.cbrb_svm_cbrb_parameter_estimation_txt
     }
