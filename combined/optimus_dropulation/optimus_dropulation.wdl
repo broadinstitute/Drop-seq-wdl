@@ -28,7 +28,7 @@ import "../../pipelines/dropseq_cbrb/dropseq_cbrb.wdl"
 import "../../pipelines/optimus_post_processing/optimus_post_processing.wdl"
 import "../../pipelines/standard_analysis/standard_analysis.wdl"
 
-workflow optimus_auto_dropulation {
+workflow optimus_dropulation {
     input {
         # required inputs
         String library_name # v123_10X-GEX-3P_abc_rxn8
