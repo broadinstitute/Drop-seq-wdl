@@ -77,12 +77,18 @@ task make_cbrb_args {
     command <<<
         set -euo pipefail
 
+        print_float() {
+            local prefix=$1
+            local float=$2
+            printf '%s%.10f' "$prefix" "$float" | awk '{ sub(/0+$/, ""); sub(/\.$/, ""); printf $0 }'
+        }
+
         touch cbrb_args
         ~{if defined(expected_cells) then "printf ' --expected-cells " + expected_cells + "' >> cbrb_args" else ""}
         ~{if defined(total_droplets_included) then "printf ' --total-droplets-included " + total_droplets_included + "' >> cbrb_args" else ""}
         ~{if defined(num_training_tries) then "printf ' --num-training-tries " + num_training_tries + "' >> cbrb_args" else ""}
-        ~{if defined(final_elbo_fail_fraction) then "printf ' --final-elbo-fail-fraction " + final_elbo_fail_fraction + "' >> cbrb_args" else ""}
-        ~{if defined(learning_rate) then "printf ' --learning-rate " + learning_rate + "' >> cbrb_args" else ""}
+        ~{if defined(final_elbo_fail_fraction) then "print_float ' --final-elbo-fail-fraction ' " + final_elbo_fail_fraction + " >> cbrb_args" else ""}
+        ~{if defined(learning_rate) then "print_float ' --learning-rate ' " + learning_rate + " >> cbrb_args" else ""}
         # strip leading space
         sed -i 's/^ //' cbrb_args
 
@@ -107,7 +113,7 @@ task make_cbrb_args {
                 fi
 
                 if [[ -n "$learning_rate" ]]; then
-                    analysis_directory_name="${analysis_directory_name}$(printf '_lr-%s' "$learning_rate")"
+                    analysis_directory_name="${analysis_directory_name}$(print_float '_lr-' "$learning_rate")"
                 fi
 
                 # strip leading underscore
