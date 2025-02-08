@@ -36,6 +36,7 @@ task run_intronic_svm {
         Int? max_umis_empty
         Array[String]? cell_features_list
         Boolean use_cbrb_features = true
+        Boolean force_two_cluster_solution = false
 
         # optional outputs
         String? out_pdf_path
@@ -76,7 +77,8 @@ task run_intronic_svm {
                 ~{if defined(out_pdf_path) then "outPDF=\"" + out_pdf_path + "\"," else ""}
                 ~{if defined(out_cell_bender_initial_parameters_path) then "outCellBenderInitialParameters=\"" + out_cell_bender_initial_parameters_path + "\"," else ""}
                 ~{if defined(out_features_file_path) then "outFeaturesFile=\"" + out_features_file_path + "\"," else ""}
-                useCBRBFeatures=~{true="TRUE" false="FALSE" use_cbrb_features}
+                useCBRBFeatures=~{true="TRUE" false="FALSE" use_cbrb_features},
+                forceTwoClusterSolution=~{true="TRUE" false="FALSE" force_two_cluster_solution}
             )' \
             -e 'message(date(), " Done ", "runIntronicSVM")'
 
