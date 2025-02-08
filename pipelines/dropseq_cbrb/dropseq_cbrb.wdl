@@ -32,6 +32,7 @@ import "../../tasks/dropseq_cbrb/hdf5_10x_to_text.wdl"
 import "../../tasks/dropseq_cbrb/join_cbrb_cell_features.wdl"
 import "../../tasks/dropseq_cbrb/make_cbrb_0_3_0_tear_sheet_properties.wdl"
 import "../../tasks/dropseq_cbrb/make_cbrb_args.wdl"
+import "../../tasks/dropseq_cbrb/make_launch_date.wdl"
 import "../../tasks/dropseq_cbrb/parse_svm_parameter_estimation_file.wdl"
 import "../../tasks/dropseq_cbrb/plateau_plot_pdf_clp.wdl"
 import "../../tasks/dropseq_cbrb/plot_cbrb_0_3_0_result.wdl"
@@ -62,6 +63,8 @@ workflow dropseq_cbrb {
         String cbrb_hardware_zones = "us-central1-a us-central1-c"
     }
 
+    call make_launch_date.make_launch_date as make_launch_date
+
     call make_cbrb_args.make_cbrb_args as make_cbrb_args {
         input:
             workflow_command_line = "cellbender_remove_background.wdl " + library_name,
@@ -76,18 +79,20 @@ workflow dropseq_cbrb {
             cbrb_properties_yaml_path = library_name + ".cbrb.properties.yaml"
     }
 
+    String analysis_identifier = library_name + "." + make_cbrb_args.analysis_tag
+
     if (use_svm_parameter_estimation) {
         call run_intronic_svm.run_intronic_svm as run_intronic_svm {
             input:
                 input_file = select_first([mtx]),
-                dataset_name = library_name + "." + make_cbrb_args.analysis_tag,
+                dataset_name = analysis_identifier,
                 cell_features_file = cell_selection_report,
                 features_file = features,
                 barcodes_file = barcodes,
                 use_cbrb_features = false,
                 force_two_cluster_solution = force_two_cluster_solution,
-                out_pdf_path = library_name + "." + make_cbrb_args.analysis_tag + ".svm_cbrb_parameter_estimation.pdf",
-                out_cell_bender_initial_parameters_path = library_name + "." + make_cbrb_args.analysis_tag + ".svm_cbrb_parameter_estimation.txt"
+                out_pdf_path = analysis_identifier + ".svm_cbrb_parameter_estimation.pdf",
+                out_cell_bender_initial_parameters_path = analysis_identifier + ".svm_cbrb_parameter_estimation.txt"
         }
 
         call parse_svm_parameter_estimation_file.parse_svm_parameter_estimation_file as parse_svm_parameter_estimation_file {
@@ -99,11 +104,11 @@ workflow dropseq_cbrb {
     call plateau_plot_pdf_clp.plateau_plot_pdf_clp as plateau_plot_pdf_clp {
         input:
             cell_features_file = cell_selection_report,
-            title = library_name + "." + make_cbrb_args.analysis_tag,
+            title = analysis_identifier,
             total_droplets_included = total_droplets_included,
             expected_cells = expected_cells,
             svm_cbrb_parameter_estimation_file = run_intronic_svm.out_cell_bender_initial_parameters,
-            out_pdf_path = library_name + "." + make_cbrb_args.analysis_tag + ".plateau.pdf"
+            out_pdf_path = analysis_identifier + ".plateau.pdf"
     }
 
     if (!(defined(mtx) && defined(features) && defined(barcodes))) {
@@ -201,7 +206,7 @@ workflow dropseq_cbrb {
             cell_features_file = cell_selection_report,
             cbrb_retained_umis_file = hdf5_10x_to_text.output_sizes,
             read_quality_metrics_file = read_quality_metrics,
-            title = library_name + "." + make_cbrb_args.analysis_tag,
+            title = experiment_date + "_" + analysis_identifier,
             append_pdfs = [cbrb.pdf],
             out_file_path = library_name + ".cbrb.tearsheet.pdf"
     }
@@ -214,7 +219,7 @@ workflow dropseq_cbrb {
             yaml_properties_file = make_cbrb_args.cbrb_properties_yaml,
             cbrb_non_empty_cells_file = fix_cbrb_non_empty_list_clp.out_non_empties_file,
             cell_features_file = cell_selection_report,
-            launch_date = experiment_date,
+            launch_date = make_launch_date.launch_date,
             cbrb_args = make_cbrb_args.cbrb_args,
             out_file_path = library_name + ".cbrb.tearsheet.txt"
     }
