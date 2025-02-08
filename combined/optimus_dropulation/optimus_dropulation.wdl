@@ -48,6 +48,7 @@ workflow optimus_dropulation {
         Int? expected_cells
         Int? total_droplets_included
         Boolean use_svm_parameter_estimation = true
+        Boolean force_two_cluster_solution = false
         Int num_training_tries = 3
         Float final_elbo_fail_fraction = 0.1
         Float learning_rate = 0.00005
@@ -112,6 +113,7 @@ workflow optimus_dropulation {
             expected_cells = expected_cells,
             total_droplets_included = total_droplets_included,
             use_svm_parameter_estimation = use_svm_parameter_estimation,
+            force_two_cluster_solution = force_two_cluster_solution,
             num_training_tries = num_training_tries,
             final_elbo_fail_fraction = final_elbo_fail_fraction,
             learning_rate = learning_rate,

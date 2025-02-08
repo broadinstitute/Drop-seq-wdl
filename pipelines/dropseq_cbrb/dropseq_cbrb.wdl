@@ -53,6 +53,7 @@ workflow dropseq_cbrb {
         Int? expected_cells
         Int? total_droplets_included
         Boolean use_svm_parameter_estimation = true
+        Boolean force_two_cluster_solution = false
         Int num_training_tries = 3
         Float final_elbo_fail_fraction = 0.1
         Float learning_rate = 0.00005
@@ -84,6 +85,7 @@ workflow dropseq_cbrb {
                 features_file = features,
                 barcodes_file = barcodes,
                 use_cbrb_features = false,
+                force_two_cluster_solution = force_two_cluster_solution,
                 out_pdf_path = library_name + "." + make_cbrb_args.analysis_tag + ".svm_cbrb_parameter_estimation.pdf",
                 out_cell_bender_initial_parameters_path = library_name + "." + make_cbrb_args.analysis_tag + ".svm_cbrb_parameter_estimation.txt"
         }
