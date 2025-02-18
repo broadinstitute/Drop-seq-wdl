@@ -47,7 +47,7 @@ workflow optimus_cbrb {
         Boolean force_two_cluster_solution = false
         Int num_training_tries = 3
         Float final_elbo_fail_fraction = 0.1
-        Float learning_rate = 0.00005
+        Float learning_rate = 0.000025
         String cbrb_other_args = ""
         String cbrb_docker_image = "us.gcr.io/broad-dsde-methods/cellbender:0.3.2"
         String cbrb_hardware_zones = "us-central1-a us-central1-c"
