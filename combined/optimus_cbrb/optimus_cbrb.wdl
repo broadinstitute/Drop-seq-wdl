@@ -107,7 +107,7 @@ workflow optimus_cbrb {
         File cbrb_summary_pdf = dropseq_cbrb.cbrb_summary_pdf
         File cbrb_cell_barcodes_csv = dropseq_cbrb.cbrb_cell_barcodes_csv
         File cbrb_metrics_csv = dropseq_cbrb.cbrb_metrics_csv
-        File cbrb_html_report = dropseq_cbrb.cbrb_html_report
+        File? cbrb_html_report = dropseq_cbrb.cbrb_html_report
         File cbrb_h5 = dropseq_cbrb.cbrb_h5
         File cbrb_checkpoint_file = dropseq_cbrb.cbrb_checkpoint_file
         File cbrb_plateau_pdf = dropseq_cbrb.cbrb_plateau_pdf

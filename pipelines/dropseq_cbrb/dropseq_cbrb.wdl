@@ -149,6 +149,11 @@ workflow dropseq_cbrb {
             hardware_zones = cbrb_hardware_zones
     }
 
+    # Igonre missing HTML reports: https://github.com/broadinstitute/CellBender/issues/337
+    if (length(cbrb.report_array) > 0) {
+        File cbrb_html_report_option = cbrb.report_array[0]
+    }
+
     call hdf5_10x_to_text.hdf5_10x_to_text as hdf5_10x_to_text {
         input:
             input_h5 = cbrb.h5_array[0],
@@ -229,7 +234,7 @@ workflow dropseq_cbrb {
         File cbrb_summary_pdf = cbrb.pdf
         File cbrb_cell_barcodes_csv = cbrb.cell_csv
         File cbrb_metrics_csv = cbrb.metrics_array[0]
-        File cbrb_html_report = cbrb.report_array[0]
+        File? cbrb_html_report = cbrb_html_report_option
         File cbrb_h5 = cbrb.h5_array[0]
         File cbrb_checkpoint_file = cbrb.ckpt_file
         File cbrb_plateau_pdf = plateau_plot_pdf_clp.out_pdf
