@@ -38,8 +38,8 @@ task hdf5_10x_to_text {
         # runtime values
         String docker = "us.gcr.io/mccarroll-scrna-seq/drop-seq_private_python:current"
         Int cpu = 2
-        Int memory_mb = 4096
-        Int disk_gb = 10
+        Int memory_mb = 8192
+        Int disk_gb = 10 + ceil(50 * size(input_h5, "GB"))
         Int preemptible = 2
     }
 
