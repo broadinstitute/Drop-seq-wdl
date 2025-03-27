@@ -44,8 +44,8 @@ task optimus_h5ad_to_dropseq {
         # runtime values
         String docker = "us.gcr.io/broad-gotc-prod/warp-tools:2.2.0"
         Int cpu = 2
-        Int memory_mb = 8096
-        Int disk_gb = 10
+        Int memory_mb = 8192
+        Int disk_gb = 10 + if defined(output_mtx_path) then ceil(50 * size(input_h5ad, "GB")) else 0
         Int preemptible = 2
     }
 
