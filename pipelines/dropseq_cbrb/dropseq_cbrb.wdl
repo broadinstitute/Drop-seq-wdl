@@ -53,7 +53,7 @@ workflow dropseq_cbrb {
         File? barcodes
         Int? expected_cells
         Int? total_droplets_included
-        Boolean use_svm_parameter_estimation = true
+        Boolean use_svm_parameter_estimation = !(defined(expected_cells) && defined(total_droplets_included))
         Boolean force_two_cluster_solution = false
         Int num_training_tries = 3
         Float final_elbo_fail_fraction = 0.1
