@@ -45,8 +45,7 @@ task merge_analysis_dir_tars {
             tar -xvf ${prior_analysis_dir_tar}
         done
 
-        tar -cvf ~{analysis_dir}.tar ~{analysis_dir}
-        gzip -k -n ~{analysis_dir}.tar
+        tar -cvf - ~{analysis_dir} | gzip -n ~{analysis_dir}.tar.gz
     >>>
 
     runtime {
