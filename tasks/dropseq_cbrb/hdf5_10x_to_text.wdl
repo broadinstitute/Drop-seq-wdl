@@ -39,23 +39,30 @@ task hdf5_10x_to_text {
         String docker = "us.gcr.io/mccarroll-scrna-seq/drop-seq_private_python:current"
         Int cpu = 2
         Int memory_mb = 8192
-        Int disk_gb = 10 + ceil(50 * size(input_h5, "GB"))
+        Int disk_gb = 10 + 2 * ceil(50 * size(input_h5, "GB")) # 2x because of re_gz
         Int preemptible = 2
     }
 
-    String output_file_txt = basename(output_file_path, ".gz")
-
+    # Uses re_gz to strip the timestamp from outputs so they will be deterministic and call-cacheable.
     command <<<
         set -euo pipefail
 
         hdf5_10X_to_text \
             --input ~{input_h5} \
-            --output ~{output_file_txt} \
+            --output ~{output_file_path} \
             --header ~{header} \
             ~{if defined(command_yaml) then "--command-yaml " + command_yaml else ""} \
             --output-sizes ~{output_sizes_path}
 
-        gzip -k -n ~{output_file_txt}
+        re_gz() {
+            local gz_file="$1"
+            local tmp_file="${gz_file}.tmp"
+            if [[ "${gz_file}" != *.gz ]]; then return; fi
+            mv "$gz_file" "$tmp_file"
+            gunzip -c "$tmp_file" | gzip -n > "$gz_file"
+        }
+
+        re_gz ~{output_file_path}
     >>>
 
     runtime {

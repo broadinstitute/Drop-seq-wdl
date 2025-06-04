@@ -45,36 +45,12 @@ task optimus_h5ad_to_dropseq {
         String docker = "us.gcr.io/broad-gotc-prod/warp-tools:2.2.0"
         Int cpu = 2
         Int memory_mb = 8192
-        Int disk_gb = 10 + if defined(output_mtx_path) then ceil(50 * size(input_h5ad, "GB")) else 0
+        # 2x the output_mtx_path because of re_gz
+        Int disk_gb = 10 + if defined(output_mtx_path) then 2 * ceil(50 * size(input_h5ad, "GB")) else 0
         Int preemptible = 2
     }
 
-    String output_digital_expression_txt =
-        if defined(output_digital_expression_path) then
-            basename(select_first([output_digital_expression_path]), ".gz")
-        else
-            "/dev/null"
-    String output_reads_per_cell_file_txt =
-        if defined(output_reads_per_cell_file_path) then
-            basename(select_first([output_reads_per_cell_file_path]), ".gz")
-        else
-            "/dev/null"
-    String output_mtx_txt =
-        if defined(output_mtx_path) then
-            basename(select_first([output_mtx_path]), ".gz")
-        else
-            "/dev/null"
-    String output_barcodes_txt =
-        if defined(output_barcodes_path) then
-            basename(select_first([output_barcodes_path]), ".gz")
-        else
-            "/dev/null"
-    String output_features_txt =
-        if defined(output_features_path) then
-            basename(select_first([output_features_path]), ".gz")
-        else
-            "/dev/null"
-
+    # Uses re_gz to strip the timestamp from outputs so they will be deterministic and call-cacheable.
     command <<<
         set -euo pipefail
 
@@ -144,16 +120,16 @@ task optimus_h5ad_to_dropseq {
 
         if ~{true="True" false="False" defined(output_mtx_path)}:
             print('writing output mtx', file=sys.stderr)
-            mmwrite('~{output_mtx_txt}', matrix)
+            mmwrite('~{output_mtx_path}', matrix)
         if ~{true="True" false="False" defined(output_barcodes_path)}:
             print('writing output barcodes', file=sys.stderr)
-            adata.obs_names.to_series().to_csv('~{output_barcodes_txt}', header=False, index=False)
+            adata.obs_names.to_series().to_csv('~{output_barcodes_path}', header=False, index=False)
         if ~{true="True" false="False" defined(output_features_path)}:
             print('writing output features', file=sys.stderr)
             features_df = pd.DataFrame(adata.var_names.to_series(), columns=['gene_id'])
             features_df['gene_name'] = features_df['gene_id']
             features_df['feature_type'] = 'Gene Expression'
-            features_df.to_csv('~{output_features_txt}', sep='\t', header=False, index=False)
+            features_df.to_csv('~{output_features_path}', sep='\t', header=False, index=False)
 
         if ~{true="True" false="False" defined(output_digital_expression_path)}:
             print('generating digital expression', file=sys.stderr)
@@ -161,7 +137,7 @@ task optimus_h5ad_to_dropseq {
             dge.columns = adata.obs_names
             dge.index = adata.var_names
             dge.index.name = 'GENE'
-            dge_path = '~{output_digital_expression_txt}'
+            dge_path = '~{output_digital_expression_path}'
             with open(dge_path, 'w') as f:
                 f.write('#DGE\tVERSION:1.1\tEXPRESSION_FORMAT:raw\n')
                 dge.to_csv(dge_path, sep='\t', mode='a')
@@ -180,7 +156,7 @@ task optimus_h5ad_to_dropseq {
             print('generating reads per cell', file=sys.stderr)
             reads_per_cell = obs[['num_reads', 'cell_names']]
             reads_per_cell = reads_per_cell.sort_values(by='num_reads', ascending=False)
-            reads_per_cell.to_csv('~{output_reads_per_cell_file_txt}', sep='\t', header=False, index=False)
+            reads_per_cell.to_csv('~{output_reads_per_cell_file_path}', sep='\t', header=False, index=False)
 
         if ~{true="True" false="False" defined(output_read_quality_metrics_path)}:
             print('generating read quality metrics', file=sys.stderr)
@@ -203,11 +179,19 @@ task optimus_h5ad_to_dropseq {
         print('done', file=sys.stderr)
         EOF
 
-        ~{if defined(output_digital_expression_path) then "gzip -k -n " + output_digital_expression_txt else ""}
-        ~{if defined(output_reads_per_cell_file_path) then "gzip -k -n " + output_reads_per_cell_file_txt else ""}
-        ~{if defined(output_mtx_path) then "gzip -k -n " + output_mtx_txt else ""}
-        ~{if defined(output_barcodes_path) then "gzip -k -n " + output_barcodes_txt else ""}
-        ~{if defined(output_features_path) then "gzip -k -n " + output_features_txt else ""}
+        re_gz() {
+            local gz_file="$1"
+            local tmp_file="${gz_file}.tmp"
+            if [[ "${gz_file}" != *.gz ]]; then return; fi
+            mv "$gz_file" "$tmp_file"
+            gunzip -c "$tmp_file" | gzip -n > "$gz_file"
+        }
+
+        ~{if defined(output_digital_expression_path) then "re_gz " + output_digital_expression_path else ""}
+        ~{if defined(output_reads_per_cell_file_path) then "re_gz " + output_reads_per_cell_file_path else ""}
+        ~{if defined(output_mtx_path) then "re_gz " + output_mtx_path else ""}
+        ~{if defined(output_barcodes_path) then "re_gz " + output_barcodes_path else ""}
+        ~{if defined(output_features_path) then "re_gz " + output_features_path else ""}
     >>>
 
     runtime {
