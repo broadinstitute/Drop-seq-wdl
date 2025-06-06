@@ -57,6 +57,7 @@ task optimus_h5ad_to_dropseq {
         python3 <<EOF
         import sys
         import anndata as ad
+        import gzip
         import pandas as pd
         import numpy as np
         from scipy.io import mmwrite
@@ -120,7 +121,12 @@ task optimus_h5ad_to_dropseq {
 
         if ~{true="True" false="False" defined(output_mtx_path)}:
             print('writing output mtx', file=sys.stderr)
-            mmwrite('~{output_mtx_path}', matrix)
+            output_mtx_path = '~{output_mtx_path}'
+            if output_mtx_path.endswith('.gz'):
+                with gzip.open(output_mtx_path, 'wb') as f:
+                    mmwrite(f, matrix)
+            else:
+                mmwrite(output_mtx_path, matrix)
         if ~{true="True" false="False" defined(output_barcodes_path)}:
             print('writing output barcodes', file=sys.stderr)
             adata.obs_names.to_series().to_csv('~{output_barcodes_path}', header=False, index=False)
