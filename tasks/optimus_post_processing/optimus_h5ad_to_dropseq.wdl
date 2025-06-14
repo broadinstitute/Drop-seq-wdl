@@ -28,7 +28,7 @@ task optimus_h5ad_to_dropseq {
         File input_h5ad
 
         # optional inputs
-        Int num_transcripts_threshold = 20
+        Int? min_transcripts
 
         # optional outputs
         String? output_h5ad_path
@@ -42,7 +42,7 @@ task optimus_h5ad_to_dropseq {
         String? output_cell_selection_report_path
 
         # runtime values
-        String docker = "us.gcr.io/broad-gotc-prod/warp-tools:2.2.0"
+        String docker = "quay.io/broadinstitute/drop-seq_python:current"
         Int cpu = 2
         Int memory_mb = 8192
         # 2x the output_mtx_path because of re_gz
@@ -54,136 +54,18 @@ task optimus_h5ad_to_dropseq {
     command <<<
         set -euo pipefail
 
-        python3 <<EOF
-        import sys
-        import anndata as ad
-        import gzip
-        import pandas as pd
-        import numpy as np
-        from scipy.io import mmwrite
-
-        print('loading full adata', file=sys.stderr)
-        adata = ad.read_h5ad('~{input_h5ad}')
-
-        duplicated_gene_name = adata.var['gene_names'].duplicated(keep=False)
-        num_duplicated_genes = duplicated_gene_name.sum()
-        if num_duplicated_genes > 0:
-            print(f'Removing {num_duplicated_genes} duplicated gene names', file=sys.stderr)
-            adata = adata[:, ~duplicated_gene_name]
-
-        # Convert the counts matrix to integers, and transpose where rows are genes and columns are cell barcodes
-        matrix = adata.X.astype(int).T
-        # Count the number of transcripts per cell barcode
-        num_transcripts = matrix.sum(axis=0).A1
-
-        num_transcripts_threshold = ~{num_transcripts_threshold}
-        print(f'subsetting to barcodes with at least {num_transcripts_threshold} transcripts', file=sys.stderr)
-        adata = adata[num_transcripts >= num_transcripts_threshold, :]
-
-        # Convert the counts matrix to integers, and transpose where rows are genes and columns are cell barcodes
-        matrix = adata.X.astype(int).T
-        # Count the number of transcripts per cell barcode
-        num_transcripts = matrix.sum(axis=0).A1
-
-        # add additional columns with names that are expected by the downstream tools
-        obs = adata.obs.copy()
-        total_reads = obs['n_reads']
-        mapped_reads = obs['reads_mapped_uniquely']
-        obs['NUM_GENES'] = obs['n_genes']
-        obs['NUM_GENIC_READS'] = obs['reads_mapped_exonic'] + obs['reads_mapped_exonic_as'] + \
-                                 obs['reads_mapped_intronic'] + obs['reads_mapped_intronic_as']
-        obs['NUM_TRANSCRIPTS'] = num_transcripts
-        obs['num_transcripts'] = num_transcripts
-        obs['num_reads'] = mapped_reads
-        obs['totalReads'] = total_reads
-        obs['mappedReads'] = mapped_reads
-        obs['hqMappedReads'] = mapped_reads
-        obs['hqMappedReadsNoPCRDupes'] = mapped_reads
-        obs['pct_coding'] = (obs['reads_mapped_exonic'] + obs['reads_mapped_exonic_as']) / mapped_reads
-        obs['pct_intronic'] = (obs['reads_mapped_intronic'] + obs['reads_mapped_intronic_as']) / mapped_reads
-        obs['pct_intergenic'] = obs['reads_mapped_intergenic'] / mapped_reads
-        obs['pct_mt'] = obs['reads_mapped_mitochondrial'] / mapped_reads
-        obs['pct_genic'] = obs['pct_coding'] + obs['pct_intronic']
-        obs['pct_ribosomal'] = 0
-        obs['pct_utr'] = 0
-
-        obs['pct_coding'] = obs['pct_coding'].round(4)
-        obs['pct_intronic'] = obs['pct_intronic'].round(4)
-        obs['pct_intergenic'] = obs['pct_intergenic'].round(4)
-        obs['pct_mt'] = obs['pct_mt'].round(4)
-        obs['pct_genic'] = obs['pct_genic'].round(4)
-        obs['pct_ribosomal'] = obs['pct_ribosomal'].round(4)
-        obs['pct_utr'] = obs['pct_utr'].round(4)
-
-        if ~{true="True" false="False" defined(output_h5ad_path)}:
-            print('writing output h5ad', file=sys.stderr)
-            adata.write('~{default="/dev/null" output_h5ad_path}')
-
-        if ~{true="True" false="False" defined(output_mtx_path)}:
-            print('writing output mtx', file=sys.stderr)
-            output_mtx_path = '~{output_mtx_path}'
-            if output_mtx_path.endswith('.gz'):
-                with gzip.open(output_mtx_path, 'wb') as f:
-                    mmwrite(f, matrix)
-            else:
-                mmwrite(output_mtx_path, matrix)
-        if ~{true="True" false="False" defined(output_barcodes_path)}:
-            print('writing output barcodes', file=sys.stderr)
-            adata.obs_names.to_series().to_csv('~{output_barcodes_path}', header=False, index=False)
-        if ~{true="True" false="False" defined(output_features_path)}:
-            print('writing output features', file=sys.stderr)
-            features_df = pd.DataFrame(adata.var_names.to_series(), columns=['gene_id'])
-            features_df['gene_name'] = features_df['gene_id']
-            features_df['feature_type'] = 'Gene Expression'
-            features_df.to_csv('~{output_features_path}', sep='\t', header=False, index=False)
-
-        if ~{true="True" false="False" defined(output_digital_expression_path)}:
-            print('generating digital expression', file=sys.stderr)
-            dge = pd.DataFrame.sparse.from_spmatrix(matrix)
-            dge.columns = adata.obs_names
-            dge.index = adata.var_names
-            dge.index.name = 'GENE'
-            dge_path = '~{output_digital_expression_path}'
-            with open(dge_path, 'w') as f:
-                f.write('#DGE\tVERSION:1.1\tEXPRESSION_FORMAT:raw\n')
-                dge.to_csv(dge_path, sep='\t', mode='a')
-
-        if ~{true="True" false="False" defined(output_digital_expression_summary_path)}:
-            print('generating digital expression summary', file=sys.stderr)
-            dge_summary = obs[['NUM_GENIC_READS', 'NUM_TRANSCRIPTS', 'NUM_GENES']]
-            dge_summary.index.name = 'CELL_BARCODE'
-            dge_summary = dge_summary.sort_values(by='NUM_GENIC_READS', ascending=False)
-            dge_summary_path = '~{default="/dev/null" output_digital_expression_summary_path}'
-            with open(dge_summary_path, 'w') as f:
-                f.write('## METRICS CLASS\torg.broadinstitute.dropseqrna.barnyard.DigitalExpression\$DESummary\n')
-            dge_summary.to_csv(dge_summary_path, sep='\t', mode='a')
-
-        if ~{true="True" false="False" defined(output_reads_per_cell_file_path)}:
-            print('generating reads per cell', file=sys.stderr)
-            reads_per_cell = obs[['num_reads', 'cell_names']]
-            reads_per_cell = reads_per_cell.sort_values(by='num_reads', ascending=False)
-            reads_per_cell.to_csv('~{output_reads_per_cell_file_path}', sep='\t', header=False, index=False)
-
-        if ~{true="True" false="False" defined(output_read_quality_metrics_path)}:
-            print('generating read quality metrics', file=sys.stderr)
-            read_qualities = obs[['totalReads', 'mappedReads', 'hqMappedReads', 'hqMappedReadsNoPCRDupes']]
-            read_quality_metrics = pd.DataFrame(read_qualities.sum()).T
-            read_quality_metrics.insert(0, 'aggregate', 'all')
-            read_quality_metrics_path = '~{default="/dev/null" output_read_quality_metrics_path}'
-            with open(read_quality_metrics_path, 'w') as f:
-                f.write('## METRICS CLASS\torg.broadinstitute.dropseqrna.metrics.ReadQualityMetrics\n')
-            read_quality_metrics.to_csv(read_quality_metrics_path, sep='\t', mode='a', index=False)
-
-        if ~{true="True" false="False" defined(output_cell_selection_report_path)}:
-            print('generating cell selection report', file=sys.stderr)
-            cell_selection_report = obs[['num_transcripts', 'num_reads', 'pct_ribosomal', 'pct_coding', 'pct_intronic',
-                                         'pct_intergenic', 'pct_utr', 'pct_genic', 'pct_mt']]
-            cell_selection_report.index.name = 'cell_barcode'
-            cell_selection_report = cell_selection_report.sort_values(by='num_transcripts', ascending=False)
-            cell_selection_report.to_csv('~{default="/dev/null" output_cell_selection_report_path}', sep='\t')
-
-        print('done', file=sys.stderr)
-        EOF
+        dropseq_hdf5 optimus_h5ad_to_dropseq \
+            --input ~{input_h5ad} \
+            ~{if defined(min_transcripts) then "--min_transcripts " + min_transcripts else ""} \
+            ~{if defined(output_h5ad_path) then "--h5ad " + output_h5ad_path else ""} \
+            ~{if defined(output_mtx_path) then "--mtx " + output_mtx_path else ""} \
+            ~{if defined(output_barcodes_path) then "--barcodes " + output_barcodes_path else ""} \
+            ~{if defined(output_features_path) then "--features " + output_features_path else ""} \
+            ~{if defined(output_digital_expression_path) then "--dge " + output_digital_expression_path else ""} \
+            ~{if defined(output_digital_expression_summary_path) then "--summary " + output_digital_expression_summary_path else ""} \
+            ~{if defined(output_reads_per_cell_file_path) then "--reads-per-cell " + output_reads_per_cell_file_path else ""} \
+            ~{if defined(output_read_quality_metrics_path) then "--read-quality-metrics " + output_read_quality_metrics_path else ""} \
+            ~{if defined(output_cell_selection_report_path) then "--cell-selection-report " + output_cell_selection_report_path else ""}
 
         re_gz() {
             local gz_file="$1"

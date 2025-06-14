@@ -38,7 +38,7 @@ workflow optimus_post_processing {
         File gtf
 
         # optional inputs
-        Int num_transcripts_threshold = 20
+        Int? min_transcripts
         Int split_bam_size_gb = 2
         String? cell_barcode_tag # CB
         String? chimeric_molecular_barcode_tag # UR
@@ -49,7 +49,7 @@ workflow optimus_post_processing {
     call optimus_h5ad_to_dropseq.optimus_h5ad_to_dropseq as optimus_h5ad_to_dropseq {
         input:
             input_h5ad = optimus_h5ad,
-            num_transcripts_threshold = num_transcripts_threshold,
+            min_transcripts = min_transcripts,
             output_h5ad_path = library_name + ".dropulation.h5ad",
             output_mtx_path = "matrix.mtx.gz",
             output_barcodes_path = "barcodes.tsv.gz",
@@ -107,7 +107,8 @@ workflow optimus_post_processing {
             merge_program = "MergeMolecularBarcodeDistributionByGene",
             other_args = "--COLUMN_FLEXIBILTY true",
             input_files = mark_chimeric_reads.output_report,
-            output_file_path = library_name + ".chimeric_transcripts.txt.gz"
+            output_file_path = library_name + ".chimeric_transcripts.txt.gz",
+            docker = "us.gcr.io/mccarroll-scrna-seq/drop-seq_private_java:current"
     }
 
     call merge_metrics.merge_metrics as merge_chimeric_read_metrics {
