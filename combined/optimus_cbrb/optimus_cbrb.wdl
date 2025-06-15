@@ -35,7 +35,7 @@ workflow optimus_cbrb {
         File gtf
 
         # optional inputs
-        Int num_transcripts_threshold = 20
+        Int? min_transcripts
         Int split_bam_size_gb = 2
         String? cell_barcode_tag # CB
         String? chimeric_molecular_barcode_tag # UR
@@ -59,7 +59,7 @@ workflow optimus_cbrb {
             optimus_bam = optimus_bam,
             optimus_h5ad = optimus_h5ad,
             gtf = gtf,
-            num_transcripts_threshold = num_transcripts_threshold,
+            min_transcripts = min_transcripts,
             split_bam_size_gb = split_bam_size_gb,
             cell_barcode_tag = cell_barcode_tag,
             chimeric_molecular_barcode_tag = chimeric_molecular_barcode_tag,

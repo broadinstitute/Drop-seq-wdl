@@ -50,7 +50,7 @@ task detect_doublets {
         String output_file_path
 
         # runtime values
-        String docker = "us.gcr.io/mccarroll-scrna-seq/drop-seq_private_java:current"
+        String docker = "quay.io/broadinstitute/drop-seq_java:current"
         Int cpu = 2
         Int memory_mb = 8192
         Int disk_gb = 10

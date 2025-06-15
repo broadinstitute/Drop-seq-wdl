@@ -105,7 +105,8 @@ workflow dropulation {
                 merge_program = "MergeGatherDigitalAlleleFrequencies",
                 input_files = gather_digital_allele_counts.allele_frequency_output,
                 output_file_path = standard_analysis_id + ".allele_freq.txt",
-                memory_mb = 16384
+                memory_mb = 16384,
+                docker = "us.gcr.io/mccarroll-scrna-seq/drop-seq_private_java:current"
         }
     }
 

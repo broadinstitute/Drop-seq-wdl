@@ -48,7 +48,7 @@ task assign_cells_to_samples {
         String output_file_path
 
         # runtime values
-        String docker = "us.gcr.io/mccarroll-scrna-seq/drop-seq_private_java:current"
+        String docker = "quay.io/broadinstitute/drop-seq_java:current"
         Int cpu = 2
         Int memory_mb = 16384
         Int disk_gb = 10 + (2 * ceil(size(vcf, "GB")))
