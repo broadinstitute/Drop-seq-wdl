@@ -36,7 +36,7 @@ task downsample_transcripts_and_quantiles {
         String output_quantile_file_path
 
         # runtime values
-        String docker = "us.gcr.io/mccarroll-scrna-seq/drop-seq_private_java:current"
+        String docker = "quay.io/broadinstitute/drop-seq_java:current"
         Int cpu = 2
         Int memory_mb = 32768
         Int disk_gb = 10

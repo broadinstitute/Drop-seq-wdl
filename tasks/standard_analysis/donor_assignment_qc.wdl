@@ -46,7 +46,7 @@ task donor_assignment_qc {
         String out_tear_sheet_pdf_path
 
         # runtime values
-        String docker = "us.gcr.io/mccarroll-scrna-seq/drop-seq_private_r:current"
+        String docker = "quay.io/broadinstitute/drop-seq_r:current"
         Int cpu = 2
         Int memory_mb = 4096
         Int disk_gb = 10

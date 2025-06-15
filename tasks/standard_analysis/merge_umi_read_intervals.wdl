@@ -34,7 +34,7 @@ task merge_umi_read_intervals {
         String output_file_path
 
         # runtime values
-        String docker = "us.gcr.io/mccarroll-scrna-seq/drop-seq_private_java:current"
+        String docker = "quay.io/broadinstitute/drop-seq_java:current"
         Int cpu = 2
         Int memory_mb = 4096
         Int disk_gb = 10 + (3 * ceil(size(input_files, "GB")))
