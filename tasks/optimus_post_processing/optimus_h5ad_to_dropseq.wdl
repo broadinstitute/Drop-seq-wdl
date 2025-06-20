@@ -68,9 +68,9 @@ task optimus_h5ad_to_dropseq {
             ~{if defined(output_cell_selection_report_path) then "--cell-selection-report " + output_cell_selection_report_path else ""}
 
         re_gz() {
-            local gz_file="$1"
-            local tmp_file="${gz_file}.tmp"
-            if [[ "${gz_file}" != *.gz ]]; then return; fi
+            local gz_file=$1
+            local tmp_file=$gz_file.tmp
+            if [[ $gz_file != *.gz ]]; then return; fi
             mv "$gz_file" "$tmp_file"
             gunzip -c "$tmp_file" | gzip -n > "$gz_file"
         }

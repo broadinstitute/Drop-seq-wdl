@@ -26,6 +26,13 @@ See the [Drop-seq GitHub repository](https://github.com/broadinstitute/Drop-seq)
         * [WARP](https://broadinstitute.github.io/warp/), especially
           [Optimus](https://broadinstitute.github.io/warp/docs/Pipelines/Optimus_Pipeline/README).
         * [CellBender Remove Background](https://cellbender.readthedocs.io/) (CBRB)
+        * [pyQTL](https://github.com/broadinstitute/pyqtl)
+        * [sc-eQTLs in cell villages pipeline](https://github.com/broadinstitute/eqtl_pipeline_terra)
+        * broadinstitute_gtex
+          * [tensorqtl_cis_nominal_v1-0_BETA](https://app.terra.bio/#workflows/broadinstitute_gtex/tensorqtl_cis_nominal_v1-0_BETA)
+          * [tensorqtl_cis_permutations_v1-0_BETA](https://app.terra.bio/#workflows/broadinstitute_gtex/tensorqtl_cis_permutations_v1-0_BETA)
+          * [tensorqtl_cis_susie_v1-0_BETA](https://app.terra.bio/#workflows/broadinstitute_gtex/tensorqtl_cis_susie_v1-0_BETA)
+          * [tensorqtl_cis_indep_v1-0_BETA](https://app.terra.bio/#workflows/broadinstitute_gtex/tensorqtl_cis_indep_v1-0_BETA)
     * Optimize Google Compute memory while leaving a buffer, since as of November 2024 Terra.bio
       [does not retry](https://support.terra.bio/hc/en-us/community/posts/25689049423259/comments/27763244299163)
       any host VM memory failures. Java Virtual Machines are sized to use a fraction of the host VM memory.
@@ -44,3 +51,4 @@ See the [Drop-seq GitHub repository](https://github.com/broadinstitute/Drop-seq)
 | `cell_selection`          | Sub-selects barcodes that captured nuclei       |
 | `standard_analysis`       | Assigns nuclei to donors and detects doublets   |
 | `cell_classification`     | Classifies cells based on their gene expression |
+| `tensorqtl`               | cis-QTL mapping using tensorQTL                 |

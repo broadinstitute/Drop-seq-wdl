@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright 2024 Broad Institute
+# Copyright 2025 Broad Institute
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,37 +22,43 @@
 
 version 1.0
 
-task hdf5_10x_to_text {
+task concat_files {
     input {
         # required inputs
-        File input_h5
-        File header
-
-        # optional inputs
-        File? command_yaml
+        Array[File] files
 
         # required outputs
-        String output_file_path
-        String output_sizes_path
+        String out_path
+
+        # optional inputs
+        Int header_count = 0
 
         # runtime values
-        String docker = "us.gcr.io/mccarroll-scrna-seq/drop-seq_private_python:current"
+        String docker = "ubuntu"
         Int cpu = 2
-        Int memory_mb = 8192
-        Int disk_gb = 10 + 2 * ceil(50 * size(input_h5, "GB")) # 2x because of re_gz
+        Int memory_mb = 4096
+        Int disk_gb = 10 + (3 * ceil(size(files, "GB")))
         Int preemptible = 2
     }
 
-    # Uses re_gz to strip the timestamp from outputs so they will be deterministic and call-cacheable.
+    Boolean gzip = basename(out_path) != basename(out_path, ".gz")
+    String unzip_command = if gzip then "gunzip -c" else "cat"
+    String zip_command = if gzip then "gzip -n" else "cat"
+
+    # Ignore the cat/gunzip result using "|| true" since it returns 141 when only partially completed.
     command <<<
         set -euo pipefail
+        set -x
 
-        hdf5_10X_to_text \
-            --input ~{input_h5} \
-            --output ~{output_file_path} \
-            --header ~{header} \
-            ~{if defined(command_yaml) then "--command-yaml " + command_yaml else ""} \
-            --output-sizes ~{output_sizes_path}
+        if [[ ~{header_count} -gt 0 ]]; then
+            ~{unzip_command} ~{files[0]} | head -n ~{header_count} | ~{zip_command} > ~{out_path} || true
+        else
+            touch ~{out_path}
+        fi
+
+        for i in ~{sep=" " files}; do
+            ~{unzip_command} $i | tail -n +~{header_count+1} | ~{zip_command} >> ~{out_path} || true
+        done
 
         re_gz() {
             local gz_file=$1
@@ -62,7 +68,7 @@ task hdf5_10x_to_text {
             gunzip -c "$tmp_file" | gzip -n > "$gz_file"
         }
 
-        re_gz ~{output_file_path}
+        re_gz ~{out_path}
     >>>
 
     runtime {
@@ -74,7 +80,6 @@ task hdf5_10x_to_text {
     }
 
     output {
-        File output_file = output_file_path
-        File output_sizes = output_sizes_path
+        File out = out_path
     }
 }

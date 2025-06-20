@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright 2024 Broad Institute
+# Copyright 2025 Broad Institute
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,37 +22,49 @@
 
 version 1.0
 
-task hdf5_10x_to_text {
+task tensorqtl_permutations {
     input {
         # required inputs
-        File input_h5
-        File header
+        File genotype_matrix
+        File gene_expression
 
         # optional inputs
-        File? command_yaml
+        File? covariates
+        Int? cis_window_size
+        Float? maf_threshold
+        Int seed = 777
 
         # required outputs
-        String output_file_path
-        String output_sizes_path
+        String output_prefix
 
         # runtime values
-        String docker = "us.gcr.io/mccarroll-scrna-seq/drop-seq_private_python:current"
+        String docker = # Same as latest tag as of April 2025 containing v1.0.9. No tags after v1.0.8.
+            "gcr.io/broad-cga-francois-gtex/tensorqtl@sha256:f6efb9e592eb32c46cb75070be2769b34381d60cbb2709d2885771324abfe32a"
         Int cpu = 2
-        Int memory_mb = 8192
-        Int disk_gb = 10 + 2 * ceil(50 * size(input_h5, "GB")) # 2x because of re_gz
+        Int memory_mb = 32768
+        Int disk_gb = 10
         Int preemptible = 2
+        String gpu_type = "nvidia-tesla-p100"
+        Int gpu_count = 1
+        String zones = "us-central1-c us-central1-f" # Restrict to zones in us-central1 with p100 gpus
     }
 
-    # Uses re_gz to strip the timestamp from outputs so they will be deterministic and call-cacheable.
+    # Modified from
+    # https://github.com/broadinstitute/eqtl_pipeline_terra/blob/9ed1c7e/qtl_mapping/qtl_mapping_peers.wdl
+    # Run tensorqtl on the data then strip out the gzip internal modification time for reproducibility.
+    # Use "python3 -m tensorqtl" to avoid "TypeError: 'module' object is not callable" at end of run.
     command <<<
         set -euo pipefail
 
-        hdf5_10X_to_text \
-            --input ~{input_h5} \
-            --output ~{output_file_path} \
-            --header ~{header} \
-            ~{if defined(command_yaml) then "--command-yaml " + command_yaml else ""} \
-            --output-sizes ~{output_sizes_path}
+        python3 -m tensorqtl \
+            ~{genotype_matrix} \
+            ~{gene_expression} \
+            ~{output_prefix} \
+            --mode cis \
+            ~{if defined(covariates) then "--covariates " + covariates else ""} \
+            ~{if defined(cis_window_size) then "--window " + cis_window_size else ""} \
+            ~{if defined(maf_threshold) then "--maf_threshold " + maf_threshold else ""} \
+            --seed ~{seed}
 
         re_gz() {
             local gz_file=$1
@@ -62,7 +74,7 @@ task hdf5_10x_to_text {
             gunzip -c "$tmp_file" | gzip -n > "$gz_file"
         }
 
-        re_gz ~{output_file_path}
+        re_gz ~{output_prefix}.cis_qtl.txt.gz
     >>>
 
     runtime {
@@ -71,10 +83,17 @@ task hdf5_10x_to_text {
         memory: memory_mb + " MB"
         disks: "local-disk " + disk_gb + " HDD"
         preemptible: preemptible
+        gpuType: gpu_type
+        gpuCount: gpu_count
+        zones: zones
+    }
+
+    meta {
+        # originally by:
+        author: "Francois Aguet"
     }
 
     output {
-        File output_file = output_file_path
-        File output_sizes = output_sizes_path
+        File cis_qtl = output_prefix + ".cis_qtl.txt.gz"
     }
 }
