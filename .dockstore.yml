@@ -28,3 +28,6 @@ workflows:
   - name: standard_analysis
     subclass: WDL
     primaryDescriptorPath: /pipelines/standard_analysis/standard_analysis.wdl
+  - name: tensorqtl
+    subclass: WDL
+    primaryDescriptorPath: /pipelines/tensorqtl/tensorqtl.wdl

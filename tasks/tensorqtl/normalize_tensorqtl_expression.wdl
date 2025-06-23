@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright 2024 Broad Institute
+# Copyright 2025 Broad Institute
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,37 +22,30 @@
 
 version 1.0
 
-task hdf5_10x_to_text {
+task normalize_tensorqtl_expression {
     input {
         # required inputs
-        File input_h5
-        File header
+        File gene_expression
 
-        # optional inputs
-        File? command_yaml
-
-        # required outputs
-        String output_file_path
-        String output_sizes_path
+        # optional outputs
+        String? gene_expression_tpm_path
+        String? gene_expression_int_path
 
         # runtime values
-        String docker = "us.gcr.io/mccarroll-scrna-seq/drop-seq_private_python:current"
+        String docker = "quay.io/broadinstitute/drop-seq_python:current"
         Int cpu = 2
-        Int memory_mb = 8192
-        Int disk_gb = 10 + 2 * ceil(50 * size(input_h5, "GB")) # 2x because of re_gz
+        Int memory_mb = 8096
+        Int disk_gb = 10
         Int preemptible = 2
     }
 
-    # Uses re_gz to strip the timestamp from outputs so they will be deterministic and call-cacheable.
     command <<<
         set -euo pipefail
 
-        hdf5_10X_to_text \
-            --input ~{input_h5} \
-            --output ~{output_file_path} \
-            --header ~{header} \
-            ~{if defined(command_yaml) then "--command-yaml " + command_yaml else ""} \
-            --output-sizes ~{output_sizes_path}
+        normalize_tensorqtl_expression \
+            --input ~{gene_expression} \
+            ~{if defined(gene_expression_tpm_path) then "--tpm " + gene_expression_tpm_path else ""} \
+            ~{if defined(gene_expression_int_path) then "--int " + gene_expression_int_path else ""}
 
         re_gz() {
             local gz_file=$1
@@ -62,7 +55,8 @@ task hdf5_10x_to_text {
             gunzip -c "$tmp_file" | gzip -n > "$gz_file"
         }
 
-        re_gz ~{output_file_path}
+        ~{if defined(gene_expression_tpm_path) then "re_gz " + gene_expression_tpm_path else ""}
+        ~{if defined(gene_expression_int_path) then "re_gz " + gene_expression_int_path else ""}
     >>>
 
     runtime {
@@ -74,7 +68,7 @@ task hdf5_10x_to_text {
     }
 
     output {
-        File output_file = output_file_path
-        File output_sizes = output_sizes_path
+        File? gene_expression_tpm = gene_expression_tpm_path
+        File? gene_expression_int = gene_expression_int_path
     }
 }

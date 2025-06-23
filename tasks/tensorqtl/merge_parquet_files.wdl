@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright 2024 Broad Institute
+# Copyright 2025 Broad Institute
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,37 +22,28 @@
 
 version 1.0
 
-task hdf5_10x_to_text {
+task merge_parquet_files {
     input {
         # required inputs
-        File input_h5
-        File header
-
-        # optional inputs
-        File? command_yaml
+        Array[File] input_files
 
         # required outputs
-        String output_file_path
-        String output_sizes_path
+        String out_path
 
         # runtime values
-        String docker = "us.gcr.io/mccarroll-scrna-seq/drop-seq_private_python:current"
+        String docker = "quay.io/broadinstitute/drop-seq_python:current"
         Int cpu = 2
-        Int memory_mb = 8192
-        Int disk_gb = 10 + 2 * ceil(50 * size(input_h5, "GB")) # 2x because of re_gz
+        Int memory_mb = 16384
+        Int disk_gb = 10 + (3 * ceil(size(input_files, "GB")))
         Int preemptible = 2
     }
 
-    # Uses re_gz to strip the timestamp from outputs so they will be deterministic and call-cacheable.
     command <<<
         set -euo pipefail
 
-        hdf5_10X_to_text \
-            --input ~{input_h5} \
-            --output ~{output_file_path} \
-            --header ~{header} \
-            ~{if defined(command_yaml) then "--command-yaml " + command_yaml else ""} \
-            --output-sizes ~{output_sizes_path}
+        merge_parquet_files \
+            ~{sep=" " prefix("--input ", input_files)} \
+            --output ~{out_path}
 
         re_gz() {
             local gz_file=$1
@@ -62,7 +53,7 @@ task hdf5_10x_to_text {
             gunzip -c "$tmp_file" | gzip -n > "$gz_file"
         }
 
-        re_gz ~{output_file_path}
+        re_gz ~{out_path}
     >>>
 
     runtime {
@@ -74,7 +65,6 @@ task hdf5_10x_to_text {
     }
 
     output {
-        File output_file = output_file_path
-        File output_sizes = output_sizes_path
+        File out = out_path
     }
 }
