@@ -69,13 +69,13 @@ task plot_gene_qtls {
           quote = FALSE
         )
 
-        snps <- df[, "variant_id"]
+        snps <- df[, "variant_id"] |> unique()
         split_snps <- do.call(rbind, strsplit(snps, ":", fixed = TRUE))
         variant_locations_df <-
           data.frame(
-            snp = snps,
             chr = split_snps[, 1],
             pos = split_snps[, 2],
+            snp = snps,
             stringsAsFactors = FALSE
           )
         write.table(
