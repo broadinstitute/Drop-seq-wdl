@@ -146,6 +146,7 @@ workflow dropseq_cbrb {
             num_training_tries = num_training_tries,
             learning_rate = learning_rate,
             docker_image = cbrb_docker_image,
+            hardware_disk_size_GB = 200, # https://github.com/broadinstitute/Drop-seq-wdl/issues/20
             hardware_zones = cbrb_hardware_zones
     }
 
