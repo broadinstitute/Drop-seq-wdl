@@ -52,7 +52,7 @@ task detect_doublets {
         # runtime values
         String docker = "quay.io/broadinstitute/drop-seq_java:current"
         Int cpu = 2
-        Int memory_mb = 8192
+        Int memory_mb = 32768
         Int disk_gb = 10
         Int preemptible = 2
     }
