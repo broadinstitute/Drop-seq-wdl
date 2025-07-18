@@ -50,7 +50,7 @@ task assign_cells_to_samples {
         # runtime values
         String docker = "quay.io/broadinstitute/drop-seq_java:current"
         Int cpu = 2
-        Int memory_mb = 16384
+        Int memory_mb = 32768
         Int disk_gb = 10 + (2 * ceil(size(vcf, "GB")))
         Int preemptible = 2
     }
