@@ -22,6 +22,7 @@
 
 version 1.0
 
+import "../../tasks/tensorqtl/annotate_qtls.wdl"
 import "../../tasks/tensorqtl/concat_files.wdl"
 import "../../tasks/tensorqtl/lookup_contig_groups.wdl"
 import "../../tasks/tensorqtl/make_intervals.wdl"
@@ -46,6 +47,7 @@ workflow tensorqtl {
         File annotations
         File sequence_dictionary
         File contig_groups_yaml
+        File dbsnp_vcf
         File vcf
         File vcf_idx
         File donor_covariates
@@ -264,6 +266,14 @@ workflow tensorqtl {
         }
     }
 
+    call annotate_qtls.annotate_qtls as annotate_qtls {
+        input:
+            qtl = tensorqtl_permutations.cis_qtl,
+            dbsnp_vcf = dbsnp_vcf,
+            annotations = annotations,
+            annotated_qtl = output_prefix + ".ann_cis_qtl.txt.gz"
+    }
+
     output {
         File diversity_pdf = plot_diversity.pdf
         File genotype_bed = prepare_eqtl_data_genotype_bed
@@ -281,5 +291,6 @@ workflow tensorqtl {
         File cis_qtl_pairs_vcf = pairs_to_vcf.out
         File cis_qtl_pairs_vcf_idx = pairs_to_vcf.out_idx
         Array[File] sign_tests = sign_test_qtl.sign_test
+        File annotated_qtl = annotate_qtls.annotated_qtl
     }
 }
