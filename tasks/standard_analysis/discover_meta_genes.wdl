@@ -57,6 +57,7 @@ task discover_meta_genes {
         }
     }
 
+    # h/t for prefix workaround: https://github.com/broadinstitute/cromwell/issues/5092#issuecomment-515872319
     command <<<
         set -euo pipefail
 
@@ -74,7 +75,7 @@ task discover_meta_genes {
             -m ${mem_size}m \
             --WRITE_SINGLE_GENES ~{write_single_genes} \
             --INPUT ~{alignment_bam} \
-            ~{sep=" " prefix("--LOCUS_FUNCTION_LIST ", locus_function_list)} \
+            ~{true="--LOCUS_FUNCTION_LIST " false="" length(locus_function_list) > 0}~{sep=" --LOCUS_FUNCTION_LIST " locus_function_list} \
             ~{if defined(known_meta_gene_file) then "--KNOWN_META_GENE_FILE " + known_meta_gene_file else ""} \
             ~{if defined(cell_barcode_tag) then "--CELL_BARCODE_TAG " + cell_barcode_tag else ""} \
             ~{if defined(molecular_barcode_tag) then "--MOLECULAR_BARCODE_TAG " + molecular_barcode_tag else ""} \

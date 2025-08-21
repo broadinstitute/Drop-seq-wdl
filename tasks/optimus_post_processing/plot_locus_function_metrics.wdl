@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright 2024 Broad Institute
+# Copyright 2025 Broad Institute
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,46 +22,42 @@
 
 version 1.0
 
-task merge_split_dges {
+task plot_locus_function_metrics {
     input {
         # required inputs
-        Array[File] input_expression
-
-        # optional inputs
-        String validation_stringency = "SILENT"
+        File digital_expression_summary_file
+        File exon_intron_per_cell_file
+        File cell_bc_counts_file
+        Int estimated_num_cells
 
         # required outputs
-        String output_file_path
+        String out_plot_path
 
         # runtime values
-        String docker = "quay.io/broadinstitute/drop-seq_java:current"
+        String docker = "us.gcr.io/mccarroll-scrna-seq/drop-seq_private_r:current"
         Int cpu = 2
-        Int memory_mb = 8192
+        Int memory_mb = 16384
         Int disk_gb = 10
         Int preemptible = 2
     }
 
-    # h/t for prefix workaround: https://github.com/broadinstitute/cromwell/issues/5092#issuecomment-515872319
     command <<<
         set -euo pipefail
 
-        mem_unit=$(echo "${MEM_UNIT:-}" | cut -c 1)
-        if [[ $mem_unit == "M" ]]; then
-            mem_size=$(awk "BEGIN {print int($MEM_SIZE)}")
-        elif [[ $mem_unit == "G" ]]; then
-            mem_size=$(awk "BEGIN {print int($MEM_SIZE * 1024)}")
-        else
-            mem_size=$(free -m | awk '/^Mem/ {print $2}')
-        fi
-        mem_size=$(awk "BEGIN {print int($mem_size * 7 / 8)}")
+        Rscript \
+            -e 'message(date(), " Start ", "plotLocusFunctionMetrics")' \
+            -e 'suppressPackageStartupMessages(library(DropSeq.barnyard))' \
+            -e 'plotLocusFunctionMetrics(
+                digitalExpressionSummaryFile="~{digital_expression_summary_file}",
+                exonIntronPerCellFile="~{exon_intron_per_cell_file}",
+                cellBCCountsFile="~{cell_bc_counts_file}",
+                estimatedNumCells=~{estimated_num_cells},
+                outPlot="~{out_plot_path}"
+            )' \
+            -e 'message(date(), " Done ", "plotLocusFunctionMetrics")'
 
-        MergeSplitDges \
-            -m ${mem_size}m \
-            ~{true="--INPUT " false="" length(input_expression) > 0}~{sep=" --INPUT " input_expression} \
-            --OUTPUT_HEADER true \
-            --HEADER_STRINGENCY NONE \
-            --OUTPUT ~{output_file_path} \
-            --VALIDATION_STRINGENCY ~{validation_stringency}
+        grep -avE '^/(Creation|Mod)Date' ~{out_plot_path} > ~{out_plot_path}.tmp
+        mv ~{out_plot_path}.tmp ~{out_plot_path}
     >>>
 
     runtime {
@@ -73,6 +69,6 @@ task merge_split_dges {
     }
 
     output {
-        File output_file = output_file_path
+        File out_plot = out_plot_path
     }
 }

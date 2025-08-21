@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright 2024 Broad Institute
+# Copyright 2025 Broad Institute
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,23 +22,19 @@
 
 version 1.0
 
-task mark_chimeric_reads {
+task bam_tag_histogram {
     input {
         # required inputs
-        File bam
+        File input_bam
 
         # optional inputs
-        String? cell_barcode_tag # CB
-        String? molecular_barcode_tag # UB
-        File? cell_bc_file
-        Array[String] locus_function_list = []
-        String? strand_strategy
+        String? tag # CB
+        Int? read_mq
+        Boolean filter_pcr_duplicates = false
         String validation_stringency = "SILENT"
 
-        # optional outputs
-        String? output_bam_path
-        String? output_report_path
-        String? output_metrics_path
+        # required outputs
+        String output_file_path
 
         # runtime values
         String docker = "quay.io/broadinstitute/drop-seq_java:current"
@@ -49,12 +45,11 @@ task mark_chimeric_reads {
     }
 
     parameter_meta {
-        bam: {
+        input_bam: {
             localization_optional: true
         }
     }
 
-    # h/t for prefix workaround: https://github.com/broadinstitute/cromwell/issues/5092#issuecomment-515872319
     command <<<
         set -euo pipefail
 
@@ -68,17 +63,13 @@ task mark_chimeric_reads {
         fi
         mem_size=$(awk "BEGIN {print int($mem_size * 7 / 8)}")
 
-        MarkChimericReads \
+        BamTagHistogram \
             -m ${mem_size}m \
-            --INPUT ~{bam} \
-            ~{if defined(cell_barcode_tag) then "--CELL_BARCODE_TAG " + cell_barcode_tag else ""} \
-            ~{if defined(molecular_barcode_tag) then "--MOLECULAR_BARCODE_TAG " + molecular_barcode_tag else ""} \
-            ~{if defined(cell_bc_file) then "--CELL_BC_FILE " + cell_bc_file else ""} \
-            ~{true="--LOCUS_FUNCTION_LIST " false="" length(locus_function_list) > 0}~{sep=" --LOCUS_FUNCTION_LIST " locus_function_list} \
-            ~{if defined(strand_strategy) then "--STRAND_STRATEGY " + strand_strategy else ""} \
-            ~{if defined(output_bam_path) then "--OUTPUT " + output_bam_path else ""} \
-            ~{if defined(output_report_path) then "--OUTPUT_REPORT " + output_report_path else ""} \
-            ~{if defined(output_metrics_path) then "--METRICS " + output_metrics_path else ""} \
+            --INPUT ~{input_bam} \
+            ~{if defined(tag) then "--TAG " + tag else ""} \
+            ~{if defined(read_mq) then "--READ_MQ " + read_mq else ""} \
+            ~{if filter_pcr_duplicates then "--FILTER_PCR_DUPLICATES true" else ""} \
+            --OUTPUT ~{output_file_path} \
             --VALIDATION_STRINGENCY ~{validation_stringency}
     >>>
 
@@ -91,8 +82,6 @@ task mark_chimeric_reads {
     }
 
     output {
-        File? output_bam = output_bam_path
-        File? output_report = output_report_path
-        File? output_metrics = output_metrics_path
+        File output_file = output_file_path
     }
 }

@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright 2024 Broad Institute
+# Copyright 2025 Broad Institute
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,34 +22,47 @@
 
 version 1.0
 
-task mark_chimeric_reads {
+task base_recalibrator {
     input {
         # required inputs
-        File bam
+        Array[File] input_bams
+        File fasta
+        File fasta_idx
+        File fasta_dict
+        Array[File] known_sites_vcfs
+        Array[File] known_sites_vcf_idxs
 
         # optional inputs
-        String? cell_barcode_tag # CB
-        String? molecular_barcode_tag # UB
-        File? cell_bc_file
-        Array[String] locus_function_list = []
-        String? strand_strategy
-        String validation_stringency = "SILENT"
+        File? intervals
 
-        # optional outputs
-        String? output_bam_path
-        String? output_report_path
-        String? output_metrics_path
+        # required outputs
+        String output_file_path
 
         # runtime values
-        String docker = "quay.io/broadinstitute/drop-seq_java:current"
+        String docker = "broadinstitute/gatk:latest"
         Int cpu = 2
-        Int memory_mb = 8192
+        Int memory_mb = 32768
         Int disk_gb = 10
         Int preemptible = 2
     }
 
     parameter_meta {
-        bam: {
+        input_bams: {
+            localization_optional: true
+        }
+        fasta: {
+            localization_optional: true
+        }
+        fasta_idx: {
+            localization_optional: true
+        }
+        fasta_dict: {
+            localization_optional: true
+        }
+        known_sites_vcfs: {
+            localization_optional: true
+        }
+        known_sites_vcf_idxs: {
             localization_optional: true
         }
     }
@@ -68,18 +81,14 @@ task mark_chimeric_reads {
         fi
         mem_size=$(awk "BEGIN {print int($mem_size * 7 / 8)}")
 
-        MarkChimericReads \
-            -m ${mem_size}m \
-            --INPUT ~{bam} \
-            ~{if defined(cell_barcode_tag) then "--CELL_BARCODE_TAG " + cell_barcode_tag else ""} \
-            ~{if defined(molecular_barcode_tag) then "--MOLECULAR_BARCODE_TAG " + molecular_barcode_tag else ""} \
-            ~{if defined(cell_bc_file) then "--CELL_BC_FILE " + cell_bc_file else ""} \
-            ~{true="--LOCUS_FUNCTION_LIST " false="" length(locus_function_list) > 0}~{sep=" --LOCUS_FUNCTION_LIST " locus_function_list} \
-            ~{if defined(strand_strategy) then "--STRAND_STRATEGY " + strand_strategy else ""} \
-            ~{if defined(output_bam_path) then "--OUTPUT " + output_bam_path else ""} \
-            ~{if defined(output_report_path) then "--OUTPUT_REPORT " + output_report_path else ""} \
-            ~{if defined(output_metrics_path) then "--METRICS " + output_metrics_path else ""} \
-            --VALIDATION_STRINGENCY ~{validation_stringency}
+        gatk \
+            --java-options "-Xmx${mem_size}m" \
+            BaseRecalibrator \
+            ~{true="--input " false="" length(input_bams) > 0}~{sep=" --input " input_bams} \
+            --reference ~{fasta} \
+            ~{true="--known-sites " false="" length(known_sites_vcfs) > 0}~{sep=" --known-sites " known_sites_vcfs} \
+            ~{if defined(intervals) then "--intervals " + intervals else ""} \
+            --output ~{output_file_path}
     >>>
 
     runtime {
@@ -91,8 +100,6 @@ task mark_chimeric_reads {
     }
 
     output {
-        File? output_bam = output_bam_path
-        File? output_report = output_report_path
-        File? output_metrics = output_metrics_path
+        File output_file = output_file_path
     }
 }

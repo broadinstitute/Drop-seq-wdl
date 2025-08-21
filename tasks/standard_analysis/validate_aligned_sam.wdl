@@ -45,6 +45,7 @@ task validate_aligned_sam {
         }
     }
 
+    # h/t for prefix workaround: https://github.com/broadinstitute/cromwell/issues/5092#issuecomment-515872319
     command <<<
         set -euo pipefail
 
@@ -60,7 +61,7 @@ task validate_aligned_sam {
 
         ValidateAlignedSam \
             -m ${mem_size}m \
-            ~{sep=" " prefix("--INPUT_BAM ", input_bams)} \
+            ~{true="--INPUT_BAM " false="" length(input_bams) > 0}~{sep=" --INPUT_BAM " input_bams} \
             --CHECK_CONTAINS_PAIRED_READS ~{check_contains_paired_reads} \
             --VALIDATION_STRINGENCY ~{validation_stringency}
     >>>

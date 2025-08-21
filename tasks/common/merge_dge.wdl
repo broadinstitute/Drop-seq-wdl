@@ -51,6 +51,7 @@ task merge_dge {
         Int preemptible = 2
     }
 
+    # h/t for prefix workaround: https://github.com/broadinstitute/cromwell/issues/5092#issuecomment-515872319
     command <<<
         set -euo pipefail
 
@@ -66,7 +67,7 @@ task merge_dge {
 
         MergeDge \
             -m ${mem_size}m \
-            ~{sep=" " prefix("--INPUT ", input_expression)} \
+            ~{true="--INPUT " false="" length(input_expression) > 0}~{sep=" --INPUT " input_expression} \
             --INTEGER_FORMAT ~{integer_format} \
             --HEADER_STRINGENCY ~{header_stringency} \
             --OUTPUT_HEADER ~{output_header} \

@@ -60,6 +60,7 @@ task prepare_eqtl_genotype_data {
 
     Array[String] ignored_chromosomes_list = if (length(ignored_chromosomes) > 0) then flatten([["null"], ignored_chromosomes]) else []
 
+    # h/t for prefix workaround: https://github.com/broadinstitute/cromwell/issues/5092#issuecomment-515872319
     command <<<
         set -euo pipefail
 
@@ -82,7 +83,7 @@ task prepare_eqtl_genotype_data {
             ~{if defined(fraction_samples_passing) then "--FRACTION_SAMPLES_PASSING " + fraction_samples_passing else ""} \
             ~{if defined(hwe_pvalue) then "--HWE_PVALUE " + hwe_pvalue else ""} \
             ~{if defined(maf) then "--MAF " + maf else ""} \
-            ~{sep=" " prefix("--IGNORED_CHROMOSOMES ", ignored_chromosomes_list)} \
+            ~{true="--IGNORED_CHROMOSOMES " false="" length(ignored_chromosomes_list) > 0}~{sep=" --IGNORED_CHROMOSOMES " ignored_chromosomes_list} \
             --GENOTYPE_BED ~{genotype_bed_path} \
             --VALIDATION_STRINGENCY ~{validation_stringency}
     >>>

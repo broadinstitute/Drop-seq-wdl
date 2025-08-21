@@ -52,6 +52,7 @@ task gather_umi_read_intervals {
         }
     }
 
+    # h/t for prefix workaround: https://github.com/broadinstitute/cromwell/issues/5092#issuecomment-515872319
     command <<<
         set -euo pipefail
 
@@ -72,7 +73,7 @@ task gather_umi_read_intervals {
             ~{if defined(cell_barcode_tag) then "--CELL_BARCODE_TAG " + cell_barcode_tag else ""} \
             ~{if defined(molecular_barcode_tag) then "--MOLECULAR_BARCODE_TAG " + molecular_barcode_tag else ""} \
             --CELL_BC_FILE ~{selected_cell_barcodes} \
-            ~{sep=" " prefix("--LOCUS_FUNCTION_LIST ", locus_function_list)} \
+            ~{true="--LOCUS_FUNCTION_LIST " false="" length(locus_function_list) > 0}~{sep=" --LOCUS_FUNCTION_LIST " locus_function_list} \
             ~{if defined(strand_strategy) then "--STRAND_STRATEGY " + strand_strategy else ""} \
             --VALIDATION_STRINGENCY ~{validation_stringency}
     >>>
