@@ -32,14 +32,31 @@ workflow optimus_cbrb {
         String experiment_date # 2024-01-01
         File optimus_bam
         File optimus_h5ad
+        File fasta
+        File fasta_idx
+        File fasta_dict
         File gtf
+        File ref_flat
+        Int estimated_num_cells
 
         # optional inputs
+        File? ribosomal_intervals
+        File? dbsnp_vcf
+        File? dbsnp_vcf_idx
+        File? dbsnp_intervals
         Int? min_transcripts
         Int split_bam_size_gb = 2
         String? cell_barcode_tag # CB
+        String? molecular_barcode_tag # UB
         String? chimeric_molecular_barcode_tag # UR
+        String? read_group_platform # Illumina
+        String? read_group_platform_unit # 12FLCELL3.ACTGACTGAC.ATCGATCGAT.1
+        String? read_group_sequencing_center # BI
+        Boolean add_read_group =
+            defined(read_group_platform) && defined(read_group_platform_unit) && defined(read_group_sequencing_center)
+        Boolean do_bqsr = defined(dbsnp_vcf) && defined(dbsnp_vcf_idx)
         Array[String] locus_function_list = [] # ["INTRONIC"]
+        Array[String] mt_sequences = [] # ["chrM"]
         String? strand_strategy # SENSE
         Int? expected_cells
         Int? total_droplets_included
@@ -58,12 +75,28 @@ workflow optimus_cbrb {
             library_name = library_name,
             optimus_bam = optimus_bam,
             optimus_h5ad = optimus_h5ad,
+            fasta = fasta,
+            fasta_idx = fasta_idx,
+            fasta_dict = fasta_dict,
             gtf = gtf,
+            ref_flat = ref_flat,
+            estimated_num_cells = estimated_num_cells,
+            ribosomal_intervals = ribosomal_intervals,
+            dbsnp_vcf = dbsnp_vcf,
+            dbsnp_vcf_idx = dbsnp_vcf_idx,
+            dbsnp_intervals = dbsnp_intervals,
             min_transcripts = min_transcripts,
             split_bam_size_gb = split_bam_size_gb,
             cell_barcode_tag = cell_barcode_tag,
+            molecular_barcode_tag = molecular_barcode_tag,
             chimeric_molecular_barcode_tag = chimeric_molecular_barcode_tag,
+            read_group_platform = read_group_platform,
+            read_group_platform_unit = read_group_platform_unit,
+            read_group_sequencing_center = read_group_sequencing_center,
+            add_read_group = add_read_group,
+            do_bqsr = do_bqsr,
             locus_function_list = locus_function_list,
+            mt_sequences = mt_sequences,
             strand_strategy = strand_strategy
     }
 
@@ -103,6 +136,19 @@ workflow optimus_cbrb {
         File dropseq_bam_manifest = optimus_post_processing.dropseq_bam_manifest
         File chimeric_transcripts = optimus_post_processing.chimeric_transcripts
         File chimeric_read_metrics = optimus_post_processing.chimeric_read_metrics
+        File rna_seq_metrics = optimus_post_processing.rna_seq_metrics
+        File read_quality_by_cell_metrics = optimus_post_processing.read_quality_by_cell_metrics
+        File mean_quality_by_cycle_all_metrics = optimus_post_processing.mean_quality_by_cycle_all_metrics
+        File mean_quality_by_cycle_all_chart = optimus_post_processing.mean_quality_by_cycle_all_chart
+        File mean_quality_by_cycle_aligned_metrics = optimus_post_processing.mean_quality_by_cycle_aligned_metrics
+        File mean_quality_by_cycle_aligned_chart = optimus_post_processing.mean_quality_by_cycle_aligned_chart
+        File num_reads_per_cell_barcode = optimus_post_processing.num_reads_per_cell_barcode
+        File base_distribution_at_read_position_cellular_metrics =
+            optimus_post_processing.base_distribution_at_read_position_cellular_metrics
+        File base_distribution_at_read_position_molecular_metrics =
+            optimus_post_processing.base_distribution_at_read_position_molecular_metrics
+        File locus_function_pdf = optimus_post_processing.locus_function_pdf
+        File alignment_pdf = optimus_post_processing.alignment_pdf
         String cbrb_analysis_tag = dropseq_cbrb.cbrb_analysis_tag
         File cbrb_summary_pdf = dropseq_cbrb.cbrb_summary_pdf
         File cbrb_cell_barcodes_csv = dropseq_cbrb.cbrb_cell_barcodes_csv

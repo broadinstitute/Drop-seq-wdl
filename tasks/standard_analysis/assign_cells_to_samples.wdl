@@ -70,6 +70,7 @@ task assign_cells_to_samples {
     Array[String] ignored_chromosomes_list = if (length(ignored_chromosomes) > 0) then flatten([["null"], ignored_chromosomes]) else []
     Boolean do_cell_contamination_estimate_file = defined(cell_contamination_estimate_file) && defined(allele_frequency_estimate_file)
 
+    # h/t for prefix workaround: https://github.com/broadinstitute/cromwell/issues/5092#issuecomment-515872319
     command <<<
         set -euo pipefail
 
@@ -94,8 +95,8 @@ task assign_cells_to_samples {
             ~{if defined(molecular_barcode_tag) then "--MOLECULAR_BARCODE_TAG " + molecular_barcode_tag else ""} \
             ~{if defined(function_tag) then "--FUNCTION_TAG " + function_tag else ""} \
             ~{if defined(edit_distance) then "--EDIT_DISTANCE " + edit_distance else ""} \
-            ~{sep=" " prefix("--IGNORED_CHROMOSOMES ", ignored_chromosomes_list)} \
-            ~{sep=" " prefix("--LOCUS_FUNCTION_LIST ", locus_function_list)} \
+            ~{true="--IGNORED_CHROMOSOMES " false="" length(ignored_chromosomes_list) > 0}~{sep=" --IGNORED_CHROMOSOMES " ignored_chromosomes_list} \
+            ~{true="--LOCUS_FUNCTION_LIST " false="" length(locus_function_list) > 0}~{sep=" --LOCUS_FUNCTION_LIST " locus_function_list} \
             ~{if defined(strand_strategy) then "--STRAND_STRATEGY " + strand_strategy else ""} \
             ~{additional_options} \
             ~{if do_cell_contamination_estimate_file then "--CELL_CONTAMINATION_ESTIMATE_FILE " + cell_contamination_estimate_file else ""} \

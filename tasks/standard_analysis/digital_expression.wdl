@@ -60,6 +60,7 @@ task digital_expression {
         }
     }
 
+    # h/t for prefix workaround: https://github.com/broadinstitute/cromwell/issues/5092#issuecomment-515872319
     command <<<
         set -euo pipefail
 
@@ -89,7 +90,7 @@ task digital_expression {
             --GENE_STRAND_TAG ~{gene_strand_tag} \
             --GENE_FUNCTION_TAG ~{gene_function_tag} \
             ~{if defined(strand_strategy) then "--STRAND_STRATEGY " + strand_strategy else ""} \
-            ~{sep=" " prefix("--LOCUS_FUNCTION_LIST ", locus_function_list)} \
+            ~{true="--LOCUS_FUNCTION_LIST " false="" length(locus_function_list) > 0}~{sep=" --LOCUS_FUNCTION_LIST " locus_function_list} \
             --VALIDATION_STRINGENCY ~{validation_stringency}
     >>>
 

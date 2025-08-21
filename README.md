@@ -33,9 +33,14 @@ See the [Drop-seq GitHub repository](https://github.com/broadinstitute/Drop-seq)
           * [tensorqtl_cis_permutations_v1-0_BETA](https://app.terra.bio/#workflows/broadinstitute_gtex/tensorqtl_cis_permutations_v1-0_BETA)
           * [tensorqtl_cis_susie_v1-0_BETA](https://app.terra.bio/#workflows/broadinstitute_gtex/tensorqtl_cis_susie_v1-0_BETA)
           * [tensorqtl_cis_indep_v1-0_BETA](https://app.terra.bio/#workflows/broadinstitute_gtex/tensorqtl_cis_indep_v1-0_BETA)
-    * Optimize Google Compute memory while leaving a buffer, since as of November 2024 Terra.bio
-      [does not retry](https://support.terra.bio/hc/en-us/community/posts/25689049423259/comments/27763244299163)
-      any host VM memory failures. Java Virtual Machines are sized to use a fraction of the host VM memory.
+    * Optimize Google Compute memory while leaving a buffer, with Java Virtual Machines sized to use a fraction of the
+      host VM memory, since as of July 2025
+      * Terra.bio [does not retry](https://support.terra.bio/hc/en-us/community/posts/25689049423259/comments/27763244299163) any host VM memory failures when triggering the OOM Killer, plus...
+      * Google Cloud Batch often
+        [fails with 50002 errors](https://discuss.google.dev/t/lots-of-batch-task-interruptions-with-exit-code-50002/166476/7)
+        when the host is under strain as the
+        [Batch agent](https://cloud.google.com/batch/docs/troubleshooting#vm_reporting_timeout_50002) does not seem to
+        reserve compute resources for itself.
 
 * Tasks contain a mix of Drop-seq tools and other tools
     * Drop-seq tools are from the Drop-seq GitHub repository.

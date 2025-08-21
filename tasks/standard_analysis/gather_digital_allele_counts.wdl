@@ -71,6 +71,7 @@ task gather_digital_allele_counts {
     # Array[String] ignored_chromosomes_list = if (length(ignored_chromosomes) > 0) then flatten([["null"], ignored_chromosomes]) else []
     Array[String] ignored_chromosomes_list = ignored_chromosomes
 
+    # h/t for prefix workaround: https://github.com/broadinstitute/cromwell/issues/5092#issuecomment-515872319
     command <<<
         set -euo pipefail
 
@@ -94,8 +95,8 @@ task gather_digital_allele_counts {
             --MULTI_GENES_PER_READ ~{multi_genes_per_read} \
             ~{if defined(cell_barcode_tag) then "--CELL_BARCODE_TAG " + cell_barcode_tag else ""} \
             ~{if defined(molecular_barcode_tag) then "--MOLECULAR_BARCODE_TAG " + molecular_barcode_tag else ""} \
-            ~{sep=" " prefix("--IGNORED_CHROMOSOMES ", ignored_chromosomes_list)} \
-            ~{sep=" " prefix("--LOCUS_FUNCTION_LIST ", locus_function_list)} \
+            ~{true="--IGNORED_CHROMOSOMES " false="" length(ignored_chromosomes_list) > 0}~{sep=" --IGNORED_CHROMOSOMES " ignored_chromosomes_list} \
+            ~{true="--LOCUS_FUNCTION_LIST " false="" length(locus_function_list) > 0}~{sep=" --LOCUS_FUNCTION_LIST " locus_function_list} \
             ~{if defined(strand_strategy) then "--STRAND_STRATEGY " + strand_strategy else ""} \
             --ALLELE_FREQUENCY_OUTPUT ~{allele_frequency_output_path} \
             --VALIDATION_STRINGENCY ~{validation_stringency}

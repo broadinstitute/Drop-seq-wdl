@@ -38,11 +38,12 @@ task merge_parquet_files {
         Int preemptible = 2
     }
 
+    # h/t for prefix workaround: https://github.com/broadinstitute/cromwell/issues/5092#issuecomment-515872319
     command <<<
         set -euo pipefail
 
         merge_parquet_files \
-            ~{sep=" " prefix("--input ", input_files)} \
+            ~{true="--input" false="" length(input_files) > 0}~{sep=" --input " input_files} \
             --output ~{out_path}
 
         re_gz() {

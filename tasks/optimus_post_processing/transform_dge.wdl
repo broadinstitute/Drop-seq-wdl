@@ -47,6 +47,7 @@ task transform_dge {
         Int preemptible = 2
     }
 
+    # h/t for prefix workaround: https://github.com/broadinstitute/cromwell/issues/5092#issuecomment-515872319
     command <<<
         set -euo pipefail
 
@@ -65,7 +66,7 @@ task transform_dge {
             --INPUT ~{input_file} \
             ~{if defined(cell_file) then "--CELL_FILE " + cell_file else ""} \
             ~{if defined(gene_file) then "--GENE_FILE " + gene_file else ""} \
-            ~{sep=" " prefix("--ORDER ", order)} \
+            ~{true="--ORDER " false="" length(order) > 0}~{sep=" --ORDER " order} \
             ~{if defined(output_format) then "--OUTPUT_FORMAT " + output_format else ""} \
             --FORMAT_AS_INTEGER ~{format_as_integer} \
             --OUTPUT_HEADER ~{output_header} \

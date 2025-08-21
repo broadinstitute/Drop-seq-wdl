@@ -54,7 +54,7 @@ task optimus_h5ad_to_dropseq {
     command <<<
         set -euo pipefail
 
-        dropseq_hdf5 optimus_h5ad_to_dropseq \
+        optimus_h5ad_to_dropseq \
             --input ~{input_h5ad} \
             ~{if defined(min_transcripts) then "--min_transcripts " + min_transcripts else ""} \
             ~{if defined(output_h5ad_path) then "--h5ad " + output_h5ad_path else ""} \

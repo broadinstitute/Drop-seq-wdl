@@ -41,6 +41,7 @@ task merge_umi_read_intervals {
         Int preemptible = 2
     }
 
+    # h/t for prefix workaround: https://github.com/broadinstitute/cromwell/issues/5092#issuecomment-515872319
     command <<<
         set -euo pipefail
 
@@ -56,7 +57,7 @@ task merge_umi_read_intervals {
 
         MergeUMIReadIntervals \
             -m ${mem_size}m \
-            ~{sep=" " prefix("--INPUT ", input_files)} \
+            ~{true="--INPUT " false="" length(input_files) > 0}~{sep=" --INPUT " input_files} \
             --DELETE_INPUTS false \
             --OUTPUT ~{output_file_path} \
             --VALIDATION_STRINGENCY ~{validation_stringency}

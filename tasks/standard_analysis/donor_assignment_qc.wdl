@@ -67,7 +67,7 @@ task donor_assignment_qc {
                 dgeRawSummaryFile="~{dge_raw_summary_file}",
                 dgeFile="~{dge_file}",
                 readsPerCellFile="~{reads_per_cell_file}",
-                ~{if defined(census_file) then "censusFile=" + census_file + "," else ""}
+                ~{if defined(census_file) then "censusFile=\"" + census_file + "\"," else ""}
                 outFileLikelyDonors="~{out_file_likely_donors_path}",
                 outDonorToCellMap="~{out_donor_to_cell_map_path}",
                 outPDF="~{out_pdf_path}",

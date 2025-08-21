@@ -43,6 +43,7 @@ task merge_metrics {
         Int preemptible = 2
     }
 
+    # h/t for prefix workaround: https://github.com/broadinstitute/cromwell/issues/5092#issuecomment-515872319
     command <<<
         set -euo pipefail
 
@@ -58,7 +59,7 @@ task merge_metrics {
 
         ~{merge_program} \
             -m ${mem_size}m \
-            ~{sep=" " prefix("--INPUT ", input_files)} \
+            ~{true="--INPUT " false="" length(input_files) > 0}~{sep=" --INPUT " input_files} \
             ~{other_args} \
             --OUTPUT ~{output_file_path} \
             --VALIDATION_STRINGENCY ~{validation_stringency}

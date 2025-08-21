@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright 2024 Broad Institute
+# Copyright 2025 Broad Institute
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,39 +22,29 @@
 
 version 1.0
 
-task mark_chimeric_reads {
+task mean_quality_by_cycle {
     input {
         # required inputs
-        File bam
+        File input_bam
 
         # optional inputs
-        String? cell_barcode_tag # CB
-        String? molecular_barcode_tag # UB
-        File? cell_bc_file
-        Array[String] locus_function_list = []
-        String? strand_strategy
+        Boolean aligned_reads_only = false
         String validation_stringency = "SILENT"
 
+        # required outputs
+        String output_metrics_path
+
         # optional outputs
-        String? output_bam_path
-        String? output_report_path
-        String? output_metrics_path
+        String? output_chart_path
 
         # runtime values
-        String docker = "quay.io/broadinstitute/drop-seq_java:current"
+        String docker = "broadinstitute/picard:latest"
         Int cpu = 2
         Int memory_mb = 8192
-        Int disk_gb = 10
+        Int disk_gb = 10 + ceil(size(input_bam, "GB"))
         Int preemptible = 2
     }
 
-    parameter_meta {
-        bam: {
-            localization_optional: true
-        }
-    }
-
-    # h/t for prefix workaround: https://github.com/broadinstitute/cromwell/issues/5092#issuecomment-515872319
     command <<<
         set -euo pipefail
 
@@ -68,18 +58,18 @@ task mark_chimeric_reads {
         fi
         mem_size=$(awk "BEGIN {print int($mem_size * 7 / 8)}")
 
-        MarkChimericReads \
-            -m ${mem_size}m \
-            --INPUT ~{bam} \
-            ~{if defined(cell_barcode_tag) then "--CELL_BARCODE_TAG " + cell_barcode_tag else ""} \
-            ~{if defined(molecular_barcode_tag) then "--MOLECULAR_BARCODE_TAG " + molecular_barcode_tag else ""} \
-            ~{if defined(cell_bc_file) then "--CELL_BC_FILE " + cell_bc_file else ""} \
-            ~{true="--LOCUS_FUNCTION_LIST " false="" length(locus_function_list) > 0}~{sep=" --LOCUS_FUNCTION_LIST " locus_function_list} \
-            ~{if defined(strand_strategy) then "--STRAND_STRATEGY " + strand_strategy else ""} \
-            ~{if defined(output_bam_path) then "--OUTPUT " + output_bam_path else ""} \
-            ~{if defined(output_report_path) then "--OUTPUT_REPORT " + output_report_path else ""} \
-            ~{if defined(output_metrics_path) then "--METRICS " + output_metrics_path else ""} \
+        java \
+            -Xmx${mem_size}m \
+            -jar /usr/picard/picard.jar \
+            MeanQualityByCycle \
+            --INPUT ~{input_bam} \
+            ~{if aligned_reads_only then "--ALIGNED_READS_ONLY" else ""} \
+            --OUTPUT ~{output_metrics_path} \
+            --CHART ~{if defined(output_chart_path) then output_chart_path else "/dev/null"} \
             --VALIDATION_STRINGENCY ~{validation_stringency}
+
+        ~{if defined(output_chart_path) then "grep -avE '^/(Creation|Mod)Date' " + output_chart_path + " > " + output_chart_path + ".tmp" else ""}
+        ~{if defined(output_chart_path) then "mv " + output_chart_path + ".tmp " + output_chart_path else ""}
     >>>
 
     runtime {
@@ -91,8 +81,7 @@ task mark_chimeric_reads {
     }
 
     output {
-        File? output_bam = output_bam_path
-        File? output_report = output_report_path
-        File? output_metrics = output_metrics_path
+        File output_metrics = output_metrics_path
+        File? output_chart = output_chart_path
     }
 }
