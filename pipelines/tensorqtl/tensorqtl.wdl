@@ -248,6 +248,14 @@ workflow tensorqtl {
             pdf_path = output_prefix + ".cis_qtl.pdf"
     }
 
+    call plot_gene_qtls.plot_gene_qtls as plot_gene_qtls_tpm {
+        input:
+            cis_qtl = tensorqtl_permutations.cis_qtl,
+            genotype_bed = prepare_eqtl_data_genotype_bed,
+            gene_expression = select_first([normalize_tensorqtl_expression.gene_expression_tpm]),
+            pdf_path = output_prefix + ".cis_qtl_tpm.pdf"
+    }
+
     scatter(sign_test_unfiltered_qtl in sign_test_unfiltered_qtls) {
         # Remove common suffixes to produce a base name for the unfiltered qtl file.
         String sign_test_unfiltered_qtl_base =
@@ -271,7 +279,7 @@ workflow tensorqtl {
             qtl = tensorqtl_permutations.cis_qtl,
             dbsnp_vcf = dbsnp_vcf,
             annotations = annotations,
-            annotated_qtl = output_prefix + ".ann_cis_qtl.txt.gz"
+            annotated_qtl_path = output_prefix + ".cis_qtl_ann.txt.gz"
     }
 
     output {
@@ -285,6 +293,7 @@ workflow tensorqtl {
         File covariates_peer = run_peer.covariates_peer
         File cis_qtl = tensorqtl_permutations.cis_qtl
         File cis_qtl_pdf = plot_gene_qtls.pdf
+        File cis_qtl_tpm_pdf = plot_gene_qtls_tpm.pdf
         File cis_independent_qtl = tensorqtl_independent.cis_independent_qtl
         File cis_qtl_pairs = merge_parquet_files.out
         File cis_qtl_pairs_zip = tensorqtl_nominal.cis_qtl_pairs_zip

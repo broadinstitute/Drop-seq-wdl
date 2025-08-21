@@ -33,7 +33,7 @@ task annotate_qtls {
         String? missing_value
 
         # required output
-        String annotated_qtl
+        String annotated_qtl_path
 
         # runtime values
         String docker = "quay.io/broadinstitute/drop-seq_python:current"
@@ -43,16 +43,26 @@ task annotate_qtls {
         Int preemptible = 2
     }
 
-
+    # Uses re_gz to strip the timestamp from outputs so they will be deterministic and call-cacheable.
     command <<<
         set -euo pipefail
 
         annotate_eqtls \
             --input ~{qtl} \
-            --output ~{annotated_qtl} \
+            --output ~{annotated_qtl_path} \
             ~{if defined(dbsnp_vcf) then "--dbsnp " + dbsnp_vcf else ""} \
             ~{if defined(annotations) then "--gtf " + annotations else ""} \
             ~{if defined(missing_value) then "--missing-value " + missing_value else ""}
+
+        re_gz() {
+            local gz_file=$1
+            local tmp_file=$gz_file.tmp
+            if [[ $gz_file != *.gz ]]; then return; fi
+            mv "$gz_file" "$tmp_file"
+            gunzip -c "$tmp_file" | gzip -n > "$gz_file"
+        }
+
+        re_gz ~{annotated_qtl_path}
     >>>
 
     runtime {
@@ -64,6 +74,6 @@ task annotate_qtls {
     }
 
     output {
-        File annotated_qtl = annotated_qtl
+        File annotated_qtl = annotated_qtl_path
     }
 }
