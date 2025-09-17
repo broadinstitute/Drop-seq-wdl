@@ -24,6 +24,7 @@ version 1.0
 
 import "../../tasks/tensorqtl/annotate_qtls.wdl"
 import "../../tasks/tensorqtl/concat_files.wdl"
+import "../../tasks/tensorqtl/count_significant_eqtl.wdl"
 import "../../tasks/tensorqtl/lookup_contig_groups.wdl"
 import "../../tasks/tensorqtl/make_intervals.wdl"
 import "../../tasks/tensorqtl/merge_parquet_files.wdl"
@@ -66,6 +67,7 @@ workflow tensorqtl {
         Array[String] prepare_eqtl_data_args = []
         Int extract_peer_factors = 0
         Int cis_window_size = 1000000
+        Boolean do_all_pairs = true
         Array[File] sign_test_unfiltered_qtls = []
         Float sign_test_qvalue_threshold = 0.05
     }
@@ -204,82 +206,93 @@ workflow tensorqtl {
             output_prefix = output_prefix
     }
 
-    call tensorqtl_independent.tensorqtl_independent as tensorqtl_independent {
+    call count_significant_eqtl.count_significant_eqtl as count_significant_eqtl {
         input:
-            genotype_matrix = prepare_tensorqtl_data.genotype_matrix_tensorqtl,
-            gene_expression = prepare_tensorqtl_data.gene_expression_tensorqtl,
-            covariates = prepare_tensorqtl_data.covariates_tensorqtl,
-            cis_window_size = cis_window_size,
-            maf_threshold = maf_threshold,
-            cis_qtl = tensorqtl_permutations.cis_qtl,
-            output_prefix = output_prefix
+            cis_qtl = tensorqtl_permutations.cis_qtl
     }
 
-    call tensorqtl_nominal.tensorqtl_nominal as tensorqtl_nominal {
-        input:
-            genotype_matrix = prepare_tensorqtl_data.genotype_matrix_tensorqtl,
-            gene_expression = prepare_tensorqtl_data.gene_expression_tensorqtl,
-            covariates = prepare_tensorqtl_data.covariates_tensorqtl,
-            cis_window_size = cis_window_size,
-            maf_threshold = maf_threshold,
-            output_prefix = output_prefix
-    }
+    if (count_significant_eqtl.count > 0) {
+        call annotate_qtls.annotate_qtls as annotate_qtls {
+            input:
+                qtl = tensorqtl_permutations.cis_qtl,
+                dbsnp_vcf = dbsnp_vcf,
+                annotations = annotations,
+                annotated_qtl_path = output_prefix + ".cis_qtl_ann.txt.gz"
+        }
 
-    call merge_parquet_files.merge_parquet_files as merge_parquet_files {
-        input:
-            input_files = tensorqtl_nominal.cis_qtl_pairs,
-            out_path = output_prefix + ".cis_qtl_pairs.txt.gz"
-    }
+        call tensorqtl_independent.tensorqtl_independent as tensorqtl_independent {
+            input:
+                genotype_matrix = prepare_tensorqtl_data.genotype_matrix_tensorqtl,
+                gene_expression = prepare_tensorqtl_data.gene_expression_tensorqtl,
+                covariates = prepare_tensorqtl_data.covariates_tensorqtl,
+                cis_window_size = cis_window_size,
+                maf_threshold = maf_threshold,
+                cis_qtl = tensorqtl_permutations.cis_qtl,
+                output_prefix = output_prefix
+        }
 
-    call pairs_to_vcf.pairs_to_vcf as pairs_to_vcf {
-        input:
-            variant_gene_pairs = merge_parquet_files.out,
-            vcf = vcf,
-            vcf_idx = vcf_idx,
-            variant_column = "variant_id",
-            out_path = output_prefix + ".cis_qtl_pairs.vcf.gz"
-    }
-
-    call plot_gene_qtls.plot_gene_qtls as plot_gene_qtls {
-        input:
-            cis_qtl = tensorqtl_permutations.cis_qtl,
-            genotype_bed = prepare_eqtl_data_genotype_bed,
-            gene_expression = run_peer.gene_expression_peer,
-            pdf_path = output_prefix + ".cis_qtl.pdf"
-    }
-
-    call plot_gene_qtls.plot_gene_qtls as plot_gene_qtls_tpm {
-        input:
-            cis_qtl = tensorqtl_permutations.cis_qtl,
-            genotype_bed = prepare_eqtl_data_genotype_bed,
-            gene_expression = select_first([normalize_tensorqtl_expression.gene_expression_tpm]),
-            pdf_path = output_prefix + ".cis_qtl_tpm.pdf"
-    }
-
-    scatter(sign_test_unfiltered_qtl in sign_test_unfiltered_qtls) {
-        # Remove common suffixes to produce a base name for the unfiltered qtl file.
-        String sign_test_unfiltered_qtl_base =
-            basename(basename(
-                basename(basename(
-                        basename(sign_test_unfiltered_qtl, ".gz"),
-                    ".txt"), ".tsv"),
-            ".allpairs"), "_all_results.GRCH38")
-
-        call sign_test_qtl.sign_test_qtl as sign_test_qtl {
+        call plot_gene_qtls.plot_gene_qtls as plot_gene_qtls {
             input:
                 cis_qtl = tensorqtl_permutations.cis_qtl,
-                unfiltered_qtl = sign_test_unfiltered_qtl,
-                qvalue_threshold = sign_test_qvalue_threshold,
-                sign_test_path = sign_test_unfiltered_qtl_base + "." + output_prefix + ".sign_test.txt"
+                genotype_bed = prepare_eqtl_data_genotype_bed,
+                gene_expression = run_peer.gene_expression_peer,
+                pdf_path = output_prefix + ".cis_qtl.pdf"
+        }
+
+        call plot_gene_qtls.plot_gene_qtls as plot_gene_qtls_tpm {
+            input:
+                cis_qtl = tensorqtl_permutations.cis_qtl,
+                genotype_bed = prepare_eqtl_data_genotype_bed,
+                gene_expression = select_first([normalize_tensorqtl_expression.gene_expression_tpm]),
+                pdf_path = output_prefix + ".cis_qtl_tpm.pdf"
         }
     }
 
-    call annotate_qtls.annotate_qtls as annotate_qtls {
-        input:
-            qtl = tensorqtl_permutations.cis_qtl,
-            dbsnp_vcf = dbsnp_vcf,
-            annotations = annotations,
-            annotated_qtl_path = output_prefix + ".cis_qtl_ann.txt.gz"
+    if (do_all_pairs) {
+        call tensorqtl_nominal.tensorqtl_nominal as tensorqtl_nominal {
+            input:
+                genotype_matrix = prepare_tensorqtl_data.genotype_matrix_tensorqtl,
+                gene_expression = prepare_tensorqtl_data.gene_expression_tensorqtl,
+                covariates = prepare_tensorqtl_data.covariates_tensorqtl,
+                cis_window_size = cis_window_size,
+                maf_threshold = maf_threshold,
+                output_prefix = output_prefix
+        }
+
+        call merge_parquet_files.merge_parquet_files as merge_parquet_files {
+            input:
+                input_files = tensorqtl_nominal.cis_qtl_pairs,
+                out_path = output_prefix + ".cis_qtl_pairs.txt.gz"
+        }
+
+        call pairs_to_vcf.pairs_to_vcf as pairs_to_vcf {
+            input:
+                variant_gene_pairs = merge_parquet_files.out,
+                vcf = vcf,
+                vcf_idx = vcf_idx,
+                variant_column = "variant_id",
+                out_path = output_prefix + ".cis_qtl_pairs.vcf.gz"
+        }
+    }
+
+    if (count_significant_eqtl.count > 0 && do_all_pairs) {
+        scatter(sign_test_unfiltered_qtl in sign_test_unfiltered_qtls) {
+            # Remove common suffixes to produce a base name for the unfiltered qtl file.
+            String sign_test_unfiltered_qtl_base =
+                basename(basename(
+                    basename(basename(
+                            basename(sign_test_unfiltered_qtl, ".gz"),
+                        ".txt"), ".tsv"),
+                ".allpairs"), "_all_results.GRCH38")
+
+            call sign_test_qtl.sign_test_qtl as sign_test_qtl {
+                input:
+                    cis_qtl = tensorqtl_permutations.cis_qtl,
+                    unfiltered_qtl = sign_test_unfiltered_qtl,
+                    qvalue_threshold = sign_test_qvalue_threshold,
+                    sign_test_path = sign_test_unfiltered_qtl_base + "." + output_prefix + ".sign_test.txt"
+            }
+        }
     }
 
     output {
@@ -292,14 +305,14 @@ workflow tensorqtl {
         File covariates = prepare_eqtl_data_covariates
         File covariates_peer = run_peer.covariates_peer
         File cis_qtl = tensorqtl_permutations.cis_qtl
-        File cis_qtl_pdf = plot_gene_qtls.pdf
-        File cis_qtl_tpm_pdf = plot_gene_qtls_tpm.pdf
-        File cis_independent_qtl = tensorqtl_independent.cis_independent_qtl
-        File cis_qtl_pairs = merge_parquet_files.out
-        File cis_qtl_pairs_zip = tensorqtl_nominal.cis_qtl_pairs_zip
-        File cis_qtl_pairs_vcf = pairs_to_vcf.out
-        File cis_qtl_pairs_vcf_idx = pairs_to_vcf.out_idx
-        Array[File] sign_tests = sign_test_qtl.sign_test
-        File annotated_qtl = annotate_qtls.annotated_qtl
+        File? cis_independent_qtl = tensorqtl_independent.cis_independent_qtl
+        File? cis_qtl_annotated = annotate_qtls.annotated_qtl
+        File? cis_qtl_pdf = plot_gene_qtls.pdf
+        File? cis_qtl_tpm_pdf = plot_gene_qtls_tpm.pdf
+        File? cis_qtl_pairs = merge_parquet_files.out
+        File? cis_qtl_pairs_zip = tensorqtl_nominal.cis_qtl_pairs_zip
+        File? cis_qtl_pairs_vcf = pairs_to_vcf.out
+        File? cis_qtl_pairs_vcf_idx = pairs_to_vcf.out_idx
+        Array[File] sign_tests = flatten(select_all([sign_test_qtl.sign_test]))
     }
 }
