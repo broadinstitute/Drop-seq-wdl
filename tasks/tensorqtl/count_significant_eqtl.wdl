@@ -38,7 +38,10 @@ task count_significant_eqtl {
     command <<<
         set -euo pipefail
 
-        zcat ~{cis_qtl} | cut -f 18 | awk 'NR>1 && $1 < 0.05 {count++} END {print count+0}' > sig_qtl_count.txt
+        zcat ~{cis_qtl} \
+        | cut -f 18 \
+        | awk 'NR>1 && $1 != "" && $1 < 0.05 {count++} END {print count+0}' \
+        > sig_qtl_count.txt
     >>>
 
     runtime {

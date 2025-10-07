@@ -36,7 +36,7 @@ task annotate_qtls {
         String annotated_qtl_path
 
         # runtime values
-        String docker = "quay.io/broadinstitute/drop-seq_python:current"
+        String docker = "quay.io/broadinstitute/drop-seq_python:2025-10-07_5a5df8f"
         Int cpu = 2
         Int memory_mb = 16384
         Int disk_gb = 14

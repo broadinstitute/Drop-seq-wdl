@@ -38,8 +38,7 @@ task tensorqtl_permutations {
         String output_prefix
 
         # runtime values
-        String docker = # Same as latest tag as of April 2025 containing v1.0.9. No tags after v1.0.8.
-            "gcr.io/broad-cga-francois-gtex/tensorqtl@sha256:f6efb9e592eb32c46cb75070be2769b34381d60cbb2709d2885771324abfe32a"
+        String docker = "us.gcr.io/mccarroll-scrna-seq/tensorqtl:pr-203-770670e"
         Int cpu = 2
         Int memory_mb = 32768
         Int disk_gb = 10
