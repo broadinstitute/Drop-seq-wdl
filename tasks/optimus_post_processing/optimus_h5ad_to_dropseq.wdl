@@ -47,7 +47,7 @@ task optimus_h5ad_to_dropseq {
         Int memory_mb = 8192
         # 2x the output_mtx_path because of re_gz
         Int disk_gb = 10 + if defined(output_mtx_path) then 2 * ceil(50 * size(input_h5ad, "GB")) else 0
-        Int preemptible = 2
+        Int preemptible = 0
     }
 
     # Uses re_gz to strip the timestamp from outputs so they will be deterministic and call-cacheable.

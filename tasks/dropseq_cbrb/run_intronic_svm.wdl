@@ -48,7 +48,7 @@ task run_intronic_svm {
         Int cpu = 2
         Int memory_mb = 65536
         Int disk_gb = 10
-        Int preemptible = 2
+        Int preemptible = 0
     }
 
     Boolean use_sparse_dge_dir = defined(features_file) && defined(barcodes_file)

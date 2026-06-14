@@ -37,7 +37,7 @@ task plot_gene_qtls {
         Int cpu = 2
         Int memory_mb = 16384
         Int disk_gb = 10
-        Int preemptible = 2
+        Int preemptible = 0
     }
 
     String genotype_matrix_path = basename(genotype_bed, ".bed.gz") + ".txt"

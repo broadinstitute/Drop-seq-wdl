@@ -43,7 +43,7 @@ task gather_umi_read_intervals {
         Int cpu = 2
         Int memory_mb = 8192
         Int disk_gb = 10
-        Int preemptible = 2
+        Int preemptible = 0
     }
 
     parameter_meta {

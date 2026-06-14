@@ -40,7 +40,7 @@ task annotate_qtls {
         Int cpu = 2
         Int memory_mb = 16384
         Int disk_gb = 14
-        Int preemptible = 2
+        Int preemptible = 0
     }
 
     # Uses re_gz to strip the timestamp from outputs so they will be deterministic and call-cacheable.

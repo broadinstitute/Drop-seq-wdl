@@ -39,7 +39,7 @@ task prepare_tensorqtl_data {
         Int cpu = 2
         Int memory_mb = 8192
         Int disk_gb = 10
-        Int preemptible = 2
+        Int preemptible = 0
     }
 
     # Remove genes that are in contigs without any genotypes.

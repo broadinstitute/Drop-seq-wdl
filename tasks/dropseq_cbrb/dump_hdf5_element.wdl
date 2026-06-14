@@ -37,7 +37,7 @@ task dump_hdf5_element {
         Int cpu = 2
         Int memory_mb = 4096
         Int disk_gb = 10
-        Int preemptible = 2
+        Int preemptible = 0
     }
 
     command <<<

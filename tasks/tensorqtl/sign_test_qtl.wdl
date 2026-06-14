@@ -40,7 +40,7 @@ task sign_test_qtl {
         Int cpu = 2
         Int memory_mb = 16384
         Int disk_gb = 10 + ceil(size(cis_qtl, "GB") + size(unfiltered_qtl, "GB"))
-        Int preemptible = 2
+        Int preemptible = 0
     }
 
     command <<<

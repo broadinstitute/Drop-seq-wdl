@@ -40,7 +40,7 @@ task merge_metrics {
         Int cpu = 2
         Int memory_mb = 4096
         Int disk_gb = 10 + (3 * ceil(size(input_files, "GB")))
-        Int preemptible = 2
+        Int preemptible = 0
     }
 
     # h/t for prefix workaround: https://github.com/broadinstitute/cromwell/issues/5092#issuecomment-515872319

@@ -47,7 +47,7 @@ task split_bam_by_cell {
         Int cpu = 2
         Int memory_mb = 4096
         Int disk_gb = 10 + (2 * ceil(size(input_bam, "GB")))
-        Int preemptible = 2
+        Int preemptible = 0
     }
 
     parameter_meta {

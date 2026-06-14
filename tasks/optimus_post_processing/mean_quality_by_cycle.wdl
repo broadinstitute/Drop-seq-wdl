@@ -42,7 +42,7 @@ task mean_quality_by_cycle {
         Int cpu = 2
         Int memory_mb = 8192
         Int disk_gb = 10 + ceil(size(input_bam, "GB"))
-        Int preemptible = 2
+        Int preemptible = 0
     }
 
     command <<<

@@ -38,7 +38,7 @@ task plot_standard_analysis_single_organism {
         Int cpu = 2
         Int memory_mb = 32768
         Int disk_gb = 10
-        Int preemptible = 2
+        Int preemptible = 0
     }
 
     String transcript_downsampling_summary_path =

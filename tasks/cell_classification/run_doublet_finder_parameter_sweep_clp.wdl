@@ -48,7 +48,7 @@ task run_doublet_finder_parameter_sweep_clp {
         Int cpu = 2
         Int memory_mb = 65536
         Int disk_gb = 10
-        Int preemptible = 2
+        Int preemptible = 0
     }
 
     command <<<
