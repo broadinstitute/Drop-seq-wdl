@@ -44,7 +44,7 @@ task make_cell_classification_plots_clp {
         Int cpu = 2
         Int memory_mb = 4096
         Int disk_gb = 10
-        Int preemptible = 2
+        Int preemptible = 0
     }
 
     command <<<

@@ -40,7 +40,7 @@ task hdf5_10x_to_text {
         Int cpu = 2
         Int memory_mb = 8192
         Int disk_gb = 10 + 2 * ceil(50 * size(input_h5, "GB")) # 2x because of re_gz
-        Int preemptible = 2
+        Int preemptible = 0
     }
 
     # Uses re_gz to strip the timestamp from outputs so they will be deterministic and call-cacheable.

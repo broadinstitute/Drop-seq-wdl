@@ -37,7 +37,7 @@ task make_intervals {
         Int cpu = 2
         Int memory_mb = 4096
         Int disk_gb = 10
-        Int preemptible = 2
+        Int preemptible = 0
     }
 
     # Create one interval file per autosome and one for non-autosomes.

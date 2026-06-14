@@ -43,7 +43,7 @@ task tensorqtl_permutations {
         Int cpu = 2
         Int memory_mb = 32768
         Int disk_gb = 10
-        Int preemptible = 2
+        Int preemptible = 0
         String gpu_type = "nvidia-tesla-p100"
         Int gpu_count = 1
         String zones = "us-central1-c us-central1-f" # Restrict to zones in us-central1 with p100 gpus

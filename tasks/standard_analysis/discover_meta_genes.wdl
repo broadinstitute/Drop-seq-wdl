@@ -48,7 +48,7 @@ task discover_meta_genes {
         Int cpu = 2
         Int memory_mb = 16384
         Int disk_gb = 10 + if defined(output_bam_path) then (2 * ceil(size(alignment_bam, "GB"))) else 0
-        Int preemptible = 2
+        Int preemptible = 0
     }
 
     parameter_meta {

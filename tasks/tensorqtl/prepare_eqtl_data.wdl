@@ -57,7 +57,7 @@ task prepare_eqtl_data {
         Int cpu = 2
         Int memory_mb = 16384
         Int disk_gb = 20
-        Int preemptible = 2
+        Int preemptible = 0
     }
 
     parameter_meta {

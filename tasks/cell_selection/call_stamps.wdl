@@ -58,7 +58,7 @@ task call_stamps {
         Int cpu = 2
         Int memory_mb = if (select_first([call_stamps_method, ""]) == "svm_nuclei") then 65536 else 4096
         Int disk_gb = 10
-        Int preemptible = 2
+        Int preemptible = 0
     }
 
     Boolean is_svm_nuclei = select_first([call_stamps_method, ""]) == "svm_nuclei"

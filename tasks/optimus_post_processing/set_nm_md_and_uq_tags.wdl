@@ -39,7 +39,7 @@ task set_nm_md_and_uq_tags {
         Int cpu = 2
         Int memory_mb = 16384
         Int disk_gb = 10 + ceil(size(input_bam, "GB") + size(fasta, "GB"))
-        Int preemptible = 2
+        Int preemptible = 0
     }
 
     command <<<

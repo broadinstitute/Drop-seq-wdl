@@ -38,7 +38,7 @@ task concat_files {
         Int cpu = 2
         Int memory_mb = 4096
         Int disk_gb = 10 + (3 * ceil(size(files, "GB")))
-        Int preemptible = 2
+        Int preemptible = 0
     }
 
     Boolean gzip = basename(out_path) != basename(out_path, ".gz")

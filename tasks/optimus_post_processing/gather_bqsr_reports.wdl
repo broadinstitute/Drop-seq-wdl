@@ -35,7 +35,7 @@ task gather_bqsr_reports {
         Int cpu = 2
         Int memory_mb = 8192
         Int disk_gb = 10
-        Int preemptible = 2
+        Int preemptible = 0
     }
 
     # h/t for prefix workaround: https://github.com/broadinstitute/cromwell/issues/5092#issuecomment-515872319

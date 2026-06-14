@@ -45,7 +45,7 @@ task join_cell_metadata {
         Int cpu = 2
         Int memory_mb = 4096
         Int disk_gb = 10
-        Int preemptible = 2
+        Int preemptible = 0
     }
 
     Boolean has_cbrb = defined(cbrb_analysis_tag) && defined(rb_cell_selection_report)
