@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright 2025 Broad Institute
+# Copyright 2026 Broad Institute
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,53 +22,49 @@
 
 version 1.0
 
-task concat_files {
+task summarize_dumultiplex_stats {
     input {
         # required inputs
-        Array[File] files
+        Array[File] demultiplex_stats_files
 
         # required outputs
-        String out_path
-
-        # optional inputs
-        Int header_count = 0
+        String out_file_path
 
         # runtime values
-        String docker = "ubuntu"
+        String docker = "us.gcr.io/mccarroll-scrna-seq/drop-seq_private_r:current"
         Int cpu = 2
-        Int memory_mb = 4096
-        Int disk_gb = 10 + (3 * ceil(size(files, "GB")))
+        Int memory_mb = 8192
+        Int disk_gb = 10
         Int preemptible = 0
     }
 
-    Boolean gzip = basename(out_path) != basename(out_path, ".gz")
-    String unzip_command = if gzip then "gunzip -c" else "cat"
-    String zip_command = if gzip then "gzip -n" else "cat"
-
-    # Ignore the cat/gunzip result using "|| true" since it returns 141 when only partially completed.
     command <<<
         set -euo pipefail
-        set -x
 
-        if [[ ~{header_count} -gt 0 ]]; then
-            ~{unzip_command} ~{files[0]} | head -n ~{header_count} | ~{zip_command} > ~{out_path} || true
-        else
-            touch ~{out_path}
-        fi
+        report_dirs_arg="c(\""
+        for idx in $(seq 1 ~{length(demultiplex_stats_files)}); do
+            mkdir $idx
+            if [ $idx -gt 1 ]; then
+                report_dirs_arg="${report_dirs_arg}\",\""
+            fi
+            report_dirs_arg="${report_dirs_arg}${idx}"
+        done
+        report_dirs_arg="${report_dirs_arg}\")"
 
-        for i in ~{sep=" " files}; do
-            ~{unzip_command} $i | tail -n +~{header_count+1} | ~{zip_command} >> ~{out_path} || true
+        idx=1
+        for demultiplex_stats_file in ~{sep=" " demultiplex_stats_files}; do
+            ln -s $demultiplex_stats_file $idx/Demultiplex_Stats.csv
+            idx=$((idx + 1))
         done
 
-        re_gz() {
-            local gz_file=$1
-            local tmp_file=$gz_file.tmp
-            if [[ $gz_file != *.gz ]]; then return; fi
-            mv "$gz_file" "$tmp_file"
-            gunzip -c "$tmp_file" | gzip -n > "$gz_file"
-        }
-
-        re_gz ~{out_path}
+        Rscript \
+            -e 'message(date(), " Start ", "summarizeDumultiplexStats")' \
+            -e 'suppressPackageStartupMessages(library(DropSeq.illumina))' \
+            -e 'summarizeDumultiplexStats(
+                reportDirs='"$report_dirs_arg"',
+                outFile="~{out_file_path}"
+            )' \
+            -e 'message(date(), " Done ", "summarizeDumultiplexStats")'
     >>>
 
     runtime {
@@ -80,6 +76,6 @@ task concat_files {
     }
 
     output {
-        File out = out_path
+        File out_file = out_file_path
     }
 }
