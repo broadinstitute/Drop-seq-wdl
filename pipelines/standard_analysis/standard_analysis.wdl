@@ -139,8 +139,7 @@ workflow standard_analysis {
         input:
             molecular_barcode_distribution_by_gene = chimeric_report_edit_distance_collapse.output_file,
             selected_cell_barcodes = selected_cell_barcodes,
-            output_downsampling_file_path = standard_analysis_id + ".transcript_downsampling.txt",
-            output_quantile_file_path = standard_analysis_id + ".transcript_downsampling_deciles.txt"
+            output_histogram_file_path = standard_analysis_id + ".umi_saturation_histogram.txt"
     }
 
     if (do_dropulation && validate_aligned_sam.done) {
@@ -232,11 +231,12 @@ workflow standard_analysis {
 
     call plot_standard_analysis_organism.plot_standard_analysis_single_organism as plot_standard_analysis_organism {
         input:
-            transcript_quantile_file = downsample_transcripts_and_quantiles.output_quantile_file,
-            transcript_downsampling_file = downsample_transcripts_and_quantiles.output_downsampling_file,
+            experiment_name = standard_analysis_id,
+            umi_saturation_histogram_file = select_first([downsample_transcripts_and_quantiles.output_histogram_file]),
             molecular_barcode_distribution_by_gene_file = chimeric_report_edit_distance_collapse.output_file,
             digital_expression_summary_file = filter_dge_selected.output_summary_file,
-            out_plot_path = standard_analysis_id + ".pdf"
+            out_plot_path = standard_analysis_id + ".pdf",
+            out_umi_saturation_metrics_file_path = standard_analysis_id + ".umi_saturation_metrics.txt"
     }
 
     output {
@@ -244,10 +244,7 @@ workflow standard_analysis {
         File selected_digital_expression_summary = filter_dge_selected.output_summary_file
         File umi_read_intervals = merge_umi_read_intervals.output_file
         File chimeric_transcripts_collapsed = chimeric_report_edit_distance_collapse.output_file
-        File transcript_downsampling = downsample_transcripts_and_quantiles.output_downsampling_file
-        File transcript_downsampling_deciles = downsample_transcripts_and_quantiles.output_quantile_file
         File transcript_downsampling_pdf = plot_standard_analysis_organism.out_plot
-        File transcript_downsampling_summary = plot_standard_analysis_organism.transcript_downsampling_summary
         File? ambient_digital_expression = filter_dge_ambient.output_file
         File? ambient_digital_expression_summary = filter_dge_ambient.output_summary_file
         File? ambient_metacells = create_meta_cells_ambient.output_file
@@ -273,5 +270,7 @@ workflow standard_analysis {
         File? gmg_digital_expression_summary = discover_gene_meta_genes.gmg_digital_expression_summary
         File? gmg_donors_digital_expression = filter_dge_gmg_donors.output_file
         File? gmg_donors_digital_expression_summary = filter_dge_gmg_donors.output_summary_file
+        File? umi_saturation_histogram = downsample_transcripts_and_quantiles.output_histogram_file
+        File? umi_saturation_metrics = plot_standard_analysis_organism.out_umi_saturation_metrics_file
     }
 }
