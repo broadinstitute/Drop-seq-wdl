@@ -46,7 +46,8 @@ task split_bam_by_cell {
         String docker = "quay.io/broadinstitute/drop-seq_java:current"
         Int cpu = 2
         Int memory_mb = 4096
-        Int disk_gb = 10 + (2 * ceil(size(input_bam, "GB")))
+        # Input is streamed using localization_optional,
+        Int disk_gb = 10 + ceil(size(input_bam, "GB"))
         Int preemptible = 0
     }
 

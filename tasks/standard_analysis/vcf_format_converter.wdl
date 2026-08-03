@@ -35,7 +35,9 @@ task vcf_format_converter {
         String docker = "broadinstitute/gatk:latest"
         Int cpu = 2
         Int memory_mb = 8192
-        Int disk_gb = 10 + (30 * ceil(size(vcf, "GB"))) # BCF are much larger than VCF, but are faster to access
+        # Input is streamed using localization_optional.
+        # Output BCF are much larger than VCF, but are faster to access.
+        Int disk_gb = 10 + (30 * ceil(size(vcf, "GB")))
         Int preemptible = 0
     }
 

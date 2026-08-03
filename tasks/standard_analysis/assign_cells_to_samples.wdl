@@ -42,6 +42,11 @@ task assign_cells_to_samples {
         File? allele_frequency_estimate_file
         String additional_options = ""
         String validation_stringency = "SILENT"
+        # Expect only <10% of sites to be in the output VCF
+        Float vcf_site_fraction = 0.1
+        # Unless they're the same input and output types, estimate a 20:1 ratio for uncompressed BCF to compressed VCF.
+        # This isn't exact, so leave some padding and use 1/12 for BCF->VCF, and 30/1 for VCF->BCF.
+        Float vcf_type_ratio = 1.0
 
         # required outputs
         String vcf_output_path
@@ -51,7 +56,8 @@ task assign_cells_to_samples {
         String docker = "quay.io/broadinstitute/drop-seq_java:current"
         Int cpu = 2
         Int memory_mb = 32768
-        Int disk_gb = 10 + (2 * ceil(size(vcf, "GB")))
+        # Input is streamed using localization_optional.
+        Int disk_gb = 10 + ceil(vcf_site_fraction * vcf_type_ratio * size(vcf, "GB"))
         Int preemptible = 0
     }
 

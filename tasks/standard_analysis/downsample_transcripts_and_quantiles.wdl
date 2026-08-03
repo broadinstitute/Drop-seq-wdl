@@ -31,9 +31,10 @@ task downsample_transcripts_and_quantiles {
         # optional inputs
         String validation_stringency = "SILENT"
 
-        # required outputs
-        String output_downsampling_file_path
-        String output_quantile_file_path
+        # optional outputs
+        String? output_downsampling_file_path
+        String? output_quantile_file_path
+        String? output_histogram_file_path
 
         # runtime values
         String docker = "quay.io/broadinstitute/drop-seq_java:current"
@@ -58,8 +59,9 @@ task downsample_transcripts_and_quantiles {
 
         DownsampleTranscriptsAndQuantiles \
             -m ${mem_size}m \
-            --OUTPUT_DOWNSAMPLING_FILE ~{output_downsampling_file_path} \
-            --OUTPUT_QUANTILE_FILE ~{output_quantile_file_path} \
+            ~{if defined(output_downsampling_file_path) then "--OUTPUT_DOWNSAMPLING_FILE " + output_downsampling_file_path else ""} \
+            ~{if defined(output_quantile_file_path) then "--OUTPUT_QUANTILE_FILE " + output_quantile_file_path else ""} \
+            ~{if defined(output_histogram_file_path) then "--OUTPUT_HISTOGRAM_FILE " + output_histogram_file_path else ""} \
             --INPUT ~{molecular_barcode_distribution_by_gene} \
             --CELL_BC_FILE ~{selected_cell_barcodes} \
             --VALIDATION_STRINGENCY ~{validation_stringency}
@@ -74,7 +76,8 @@ task downsample_transcripts_and_quantiles {
     }
 
     output {
-        File output_downsampling_file = output_downsampling_file_path
-        File output_quantile_file = output_quantile_file_path
+        File? output_downsampling_file = output_downsampling_file_path
+        File? output_quantile_file = output_quantile_file_path
+        File? output_histogram_file = output_histogram_file_path
     }
 }

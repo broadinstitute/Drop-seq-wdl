@@ -25,13 +25,16 @@ version 1.0
 task plot_standard_analysis_single_organism {
     input {
         # required inputs
-        File transcript_quantile_file
-        File transcript_downsampling_file
+        String experiment_name
+        File umi_saturation_histogram_file
         File molecular_barcode_distribution_by_gene_file
         File digital_expression_summary_file
 
         # required outputs
         String out_plot_path
+
+        # optional outputs
+        String out_umi_saturation_metrics_file_path
 
         # runtime values
         String docker = "us.gcr.io/mccarroll-scrna-seq/drop-seq_private_r:current"
@@ -51,10 +54,11 @@ task plot_standard_analysis_single_organism {
             -e 'message(date(), " Start ", "plotStandardAnalysisSingleOrganism")' \
             -e 'suppressPackageStartupMessages(library(DropSeq.barnyard))' \
             -e 'plotStandardAnalysisSingleOrganism(
-                transcriptQuantileFile="~{transcript_quantile_file}",
-                transcriptDownsamplingFile="~{transcript_downsampling_file}",
+                experimentName="~{experiment_name}",
+                umiSaturationHistogramFile="~{umi_saturation_histogram_file}",
                 molecularBarcodeDistributionByGeneFile="~{molecular_barcode_distribution_by_gene_file}",
                 digitalExpressionSummaryFile="~{digital_expression_summary_file}",
+                ~{if defined(out_umi_saturation_metrics_file_path) then "outUmiSaturationMetricsFile=\"" + out_umi_saturation_metrics_file_path + "\"," else ""}
                 outPlot="~{out_plot_path}"
             )' \
             -e 'message(date(), " Done ", "plotStandardAnalysisSingleOrganism")'
@@ -73,6 +77,6 @@ task plot_standard_analysis_single_organism {
 
     output {
         File out_plot = out_plot_path
-        File transcript_downsampling_summary = transcript_downsampling_summary_path
+        File? out_umi_saturation_metrics_file = out_umi_saturation_metrics_file_path
     }
 }

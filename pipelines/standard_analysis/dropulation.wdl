@@ -126,6 +126,7 @@ workflow dropulation {
                 cell_contamination_estimate_file = cbrb_cell_selection_report,
                 allele_frequency_estimate_file = merge_gather_digital_allele_frequencies.output_file,
                 vcf_output_path = standard_analysis_id + "." + idx + ".vcf.gz",
+                vcf_type_ratio = 1/12.0,
                 output_file_path = standard_analysis_id + "." + idx + ".donor_assignments.txt"
         }
 

@@ -289,10 +289,7 @@ workflow optimus_dropulation {
         File selected_digital_expression_summary = standard_analysis.selected_digital_expression_summary
         File umi_read_intervals = standard_analysis.umi_read_intervals
         File chimeric_transcripts_collapsed = standard_analysis.chimeric_transcripts_collapsed
-        File transcript_downsampling = standard_analysis.transcript_downsampling
-        File transcript_downsampling_deciles = standard_analysis.transcript_downsampling_deciles
         File transcript_downsampling_pdf = standard_analysis.transcript_downsampling_pdf
-        File transcript_downsampling_summary = standard_analysis.transcript_downsampling_summary
         File? cbrb_svm_cbrb_parameter_estimation_pdf = dropseq_cbrb.cbrb_svm_cbrb_parameter_estimation_pdf
         File? cbrb_svm_cbrb_parameter_estimation_txt = dropseq_cbrb.cbrb_svm_cbrb_parameter_estimation_txt
         File? ambient_digital_expression = standard_analysis.ambient_digital_expression
@@ -320,6 +317,8 @@ workflow optimus_dropulation {
         File? gmg_digital_expression_summary = standard_analysis.gmg_digital_expression_summary
         File? gmg_donors_digital_expression = standard_analysis.gmg_donors_digital_expression
         File? gmg_donors_digital_expression_summary = standard_analysis.gmg_donors_digital_expression_summary
+        File? umi_saturation_histogram = standard_analysis.umi_saturation_histogram
+        File? umi_saturation_metrics = standard_analysis.umi_saturation_metrics
         File? cell_classification_analysis_dir_tgz = cell_classification.analysis_dir_tgz
         File? cell_classification_pred_probs_pdf = cell_classification.pred_probs_pdf
         File? cell_classification_cell_doublet_info = cell_classification.cell_doublet_info
