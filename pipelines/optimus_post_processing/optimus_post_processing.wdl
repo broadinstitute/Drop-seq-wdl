@@ -103,9 +103,7 @@ workflow optimus_post_processing {
             split_tag = select_first([cell_barcode_tag, "CB"]),
             target_bam_size_gb = split_bam_size_gb,
             output_bams_pattern = library_name + ".__SPLITNUM__.bam",
-            output_manifest_path = library_name + ".split_bam_manifest.gz",
-            # This job takes a long time to run, and seems to preempt often enough to exhaust the premption count anyway
-            preemptible = 0
+            output_manifest_path = library_name + ".split_bam_manifest.gz"
     }
 
     Array[File] split_by_cell_bams = split_bam_by_cell.output_bams
