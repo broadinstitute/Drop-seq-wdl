@@ -22,8 +22,8 @@
 
 version 1.0
 
+import "../../tasks/common/concat_files.wdl"
 import "../../tasks/tensorqtl/annotate_qtls.wdl"
-import "../../tasks/tensorqtl/concat_files.wdl"
 import "../../tasks/tensorqtl/count_significant_eqtl.wdl"
 import "../../tasks/tensorqtl/lookup_contig_groups.wdl"
 import "../../tasks/tensorqtl/make_intervals.wdl"
