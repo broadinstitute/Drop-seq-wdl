@@ -35,6 +35,7 @@ task recon_count {
         Int? r1_barcodes
         Int? r2_barcodes
         File? recon_count_jl
+        File? count_umis_jl
         Float heap_fraction = 0.75
 
         # Runtime values
@@ -89,11 +90,19 @@ task recon_count {
         mkdir -p out_dir
         mkdir -p out_pdf
 
+        mkdir -p recon_jl
+        cp /usr/local/bin/reconstruction/*.jl recon_jl/
+        ~{
+            if defined(count_umis_jl)
+            then "cp " + select_first([count_umis_jl]) + " recon_jl/"
+            else ""
+        }
+
         JULIA_DEPOT_PATH=${TMPDIR:-}:/root/.julia \
             julia \
             --threads ~{cpu} \
             --heap-size-hint ${mem_size}M \
-            ~{if defined(recon_count_jl) then recon_count_jl else "/usr/local/bin/reconstruction/recon-count.jl"} \
+            recon_jl/recon-count.jl \
             fastqs/~{bcl} \
             ~{out_dir} \
             ~{if defined(regex) then "--regex " + regex else ""} \

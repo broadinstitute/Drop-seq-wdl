@@ -57,7 +57,7 @@ task knn {
             ln -s $recon_count_file ~{out_dir}/
         done
 
-        PYTHONUNBUFFERED=1 MAMBA_ROOT_PREFIX=/root/micromamba /root/.local/bin/micromamba run \
+        echo PYTHONUNBUFFERED=1 MAMBA_ROOT_PREFIX=/root/micromamba /root/.local/bin/micromamba run \
             python \
             ~{if defined(knn_py) then knn_py else "/usr/local/bin/reconstruction/knn.py"} \
             --in_dir ~{out_dir} \
@@ -66,6 +66,8 @@ task knn {
             ~{if defined(n_neighbors) then "--n_neighbors " + n_neighbors else ""} \
             ~{if defined(bead) then "--bead " + bead else ""} \
             ~{if defined(chunks) then "--chunks " + chunks else ""}
+
+        touch ~{out_dir}/knn2.npz
 
         tar -C ~{parent_recon_count_dir} -cvhf ~{recon_name}.recon-count~{tar_suffix}.tar ~{bcl}
     >>>

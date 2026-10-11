@@ -33,6 +33,7 @@ workflow recon_count_and_knn_serial {
         Array[File] sample_fastqs
         String bcl_name
         String sample_name
+        String tar_suffix
 
         # Optional inputs
         String? local_recon_dir
@@ -48,6 +49,7 @@ workflow recon_count_and_knn_serial {
         # https://discourse.julialang.org/t/heap-size-hint-usage-recommendations/98697
         Float? recon_count_heap_fraction
         File? recon_count_jl
+        File? count_umis_jl
         Float knn_memory_multiplier = 0.75
         File? knn_py
     }
@@ -95,13 +97,14 @@ workflow recon_count_and_knn_serial {
             r1_barcodes = r1_barcodes,
             r2_barcodes = r2_barcodes,
             recon_count_jl = recon_count_jl,
+            count_umis_jl = count_umis_jl,
             memory_gb = recon_count_memory_gb,
             heap_fraction = recon_count_heap_fraction
     }
 
     call knn.knn as knn {
         input:
-            tar_suffix = ".serial",
+            tar_suffix = tar_suffix,
             bcl = bcl_name,
             recon_name = validate_recon_inputs.recon_name,
             recon_count_files = recon_count.recon_count_outputs,

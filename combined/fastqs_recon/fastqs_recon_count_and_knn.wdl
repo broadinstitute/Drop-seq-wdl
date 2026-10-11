@@ -23,6 +23,7 @@
 version 1.0
 
 import "../../pipelines/reconstruction/recon_count_and_knn_parallel.wdl"
+import "../../pipelines/reconstruction/recon_count_and_knn_serial.wdl"
 
 workflow fastqs_recon_count_and_knn {
     input {
@@ -30,9 +31,10 @@ workflow fastqs_recon_count_and_knn {
         Array[File] sample_fastqs
         String bcl_name
         String sample_name
+        File count_umis_jl
 
         # Optional inputs
-        String? local_recon_dir # The directory to store the reconstruction output files
+#        String? local_recon_dir # The directory to store the reconstruction output files
         Int? lane # The single lane to run recon on
         Int? recon_count_r1_barcodes
         Int? recon_count_r2_barcodes
@@ -42,27 +44,42 @@ workflow fastqs_recon_count_and_knn {
         Int? recon_count_chunks
     }
 
-#    call recon_count_and_knn_serial.recon_count_and_knn_serial as recon_count_and_knn_serial {
-#        input:
-#            sample_fastqs = sample_fastqs,
-#            bcl_name = bcl_name,
-#            sample_name = sample_name,
-#            local_recon_dir = local_recon_dir,
-#            lane = lane,
-#            r1_barcodes = recon_count_r1_barcodes,
-#            r2_barcodes = recon_count_r2_barcodes,
-#            downsampling_level = recon_count_downsampling_level,
-#            n_neighbors = recon_count_n_neighbors,
-#            bead = recon_count_bead,
-#            chunks = recon_count_chunks
-#    }
-#
+    call recon_count_and_knn_serial.recon_count_and_knn_serial as recon_count_and_knn_serial_orig {
+        input:
+            sample_fastqs = sample_fastqs,
+            bcl_name = bcl_name,
+            sample_name = sample_name,
+            lane = lane,
+            r1_barcodes = recon_count_r1_barcodes,
+            r2_barcodes = recon_count_r2_barcodes,
+            downsampling_level = recon_count_downsampling_level,
+            n_neighbors = recon_count_n_neighbors,
+            bead = recon_count_bead,
+            chunks = recon_count_chunks,
+            tar_suffix = ".serial.orig"
+    }
+
+    call recon_count_and_knn_serial.recon_count_and_knn_serial as recon_count_and_knn_serial_new {
+        input:
+            sample_fastqs = sample_fastqs,
+            bcl_name = bcl_name,
+            sample_name = sample_name,
+            count_umis_jl = count_umis_jl,
+            lane = lane,
+            r1_barcodes = recon_count_r1_barcodes,
+            r2_barcodes = recon_count_r2_barcodes,
+            downsampling_level = recon_count_downsampling_level,
+            n_neighbors = recon_count_n_neighbors,
+            bead = recon_count_bead,
+            chunks = recon_count_chunks,
+            tar_suffix = ".serial.new"
+    }
+
     call recon_count_and_knn_parallel.recon_count_and_knn_parallel as recon_count_and_knn_parallel {
         input:
             sample_fastqs = sample_fastqs,
             bcl_name = bcl_name,
             sample_name = sample_name,
-            local_recon_dir = local_recon_dir,
             lane = lane,
             r1_barcodes = recon_count_r1_barcodes,
             r2_barcodes = recon_count_r2_barcodes,
@@ -73,11 +90,11 @@ workflow fastqs_recon_count_and_knn {
     }
 
     output {
-        String recon_name = recon_count_and_knn_parallel.recon_name
         Array[File] recon_count_tars = select_all([
-#            recon_count_and_knn_serial.recon_count_tar,
-            recon_count_and_knn_parallel.recon_count_tar
+            recon_count_and_knn_serial_orig.recon_count_tar,
+            recon_count_and_knn_serial_new.recon_count_tar,
+            recon_count_and_knn_parallel.recon_count_orig_tar,
+            recon_count_and_knn_parallel.recon_count_new_tar
         ])
-        File qc_pdfs = recon_count_and_knn_parallel.qc_pdf
     }
 }

@@ -40,6 +40,7 @@ task recon_count_count_umis {
         Int? r1_barcodes
         Int? r2_barcodes
         File? recon_count_count_umis_jl
+        File? count_umis_jl
         Float heap_fraction = 0.75
 
         # Runtime values
@@ -100,15 +101,19 @@ task recon_count_count_umis {
         mkdir -p out_dir
         mkdir -p out_pdf
 
+        mkdir -p recon_jl
+        cp /usr/local/bin/reconstruction/*.jl recon_jl/
+        ~{
+            if defined(count_umis_jl)
+            then "cp " + select_first([count_umis_jl]) + " recon_jl/"
+            else ""
+        }
+
         JULIA_DEPOT_PATH=${TMPDIR:-}:/root/.julia \
             julia \
             --threads ~{cpu} \
             --heap-size-hint ${mem_size}M \
-            ~{
-                if defined(recon_count_count_umis_jl)
-                then recon_count_count_umis_jl
-                else "/usr/local/bin/reconstruction/recon-count_count-umis.jl"
-            } \
+            recon_jl/recon-count_count-umis.jl \
             in_dir \
             out_dir \
             ~{if defined(downsampling_level) then "--downsampling_level " + downsampling_level else ""} \

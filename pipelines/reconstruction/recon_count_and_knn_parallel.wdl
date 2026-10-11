@@ -59,6 +59,7 @@ workflow recon_count_and_knn_parallel {
         # https://discourse.julialang.org/t/heap-size-hint-usage-recommendations/98697
         Float? recon_count_heap_fraction
         File? recon_count_jl
+        File? count_umis_jl
         Float knn_memory_multiplier = 0.75
         File? knn_py
     }
@@ -274,7 +275,7 @@ workflow recon_count_and_knn_parallel {
         }
     }
 
-    call recon_count_count_umis.recon_count_count_umis as recon_count_count_umis {
+    call recon_count_count_umis.recon_count_count_umis as recon_count_count_umis_orig {
         input:
             recon_name = validate_recon_inputs.recon_name,
             find_fastqs_filepaths_pdf = recon_count_find_fastqs.filepaths_pdf,
@@ -292,15 +293,34 @@ workflow recon_count_and_knn_parallel {
             heap_fraction = recon_count_heap_fraction
     }
 
-    call knn.knn as knn {
+    call recon_count_count_umis.recon_count_count_umis as recon_count_count_umis_new {
         input:
-            tar_suffix = ".parallel",
+            recon_name = validate_recon_inputs.recon_name,
+            count_umis_jl = count_umis_jl,
+            find_fastqs_filepaths_pdf = recon_count_find_fastqs.filepaths_pdf,
+            compute_whitelists_elbows_pdf = recon_count_compute_whitelists.elbows_pdf,
+            compute_whitelists_metadata_csv = recon_count_compute_whitelists.metadata_csv,
+            remove_chimeras_reads_counts_csv_gzs = recon_count_remove_chimeras.reads_counts_csv_gz,
+            remove_chimeras_umi_counts_csv_gzs = recon_count_remove_chimeras.umi_counts_csv_gz,
+            remove_chimeras_umi_df_csv_gzs = recon_count_remove_chimeras.umi_df_csv_gz,
+            remove_chimeras_metadata_csvs = recon_count_remove_chimeras.metadata_csv,
+            read_fastqs_n_metadata_csvs = recon_count_read_fastqs_n.metadata_csv,
+            downsampling_level = downsampling_level,
+            r1_barcodes = r1_barcodes,
+            r2_barcodes = r2_barcodes,
+            memory_gb = recon_count_gather_memory_gb,
+            heap_fraction = recon_count_heap_fraction
+    }
+
+    call knn.knn as knn_orig {
+        input:
+            tar_suffix = ".parallel.orig",
             bcl = bcl_name,
             recon_name = validate_recon_inputs.recon_name,
             recon_count_files = flatten([
                 flatten(select_all([recon_count_count_reads_rpu.reads_per_umi_csvs])),
                 select_all([concat_rupsb1.out, concat_rupsb2.out]),
-                recon_count_count_umis.count_umis_outputs
+                recon_count_count_umis_orig.count_umis_outputs
             ]),
             n_neighbors = n_neighbors,
             bead = bead,
@@ -309,22 +329,42 @@ workflow recon_count_and_knn_parallel {
             memory_gb = knn_memory_gb
     }
 
-    # TODO: After testing, restore to either untarring or returning the tar
-    if (defined(local_recon_dir)) {
-        call untar.untar as untar {
-            input:
-                tar_file = knn.recon_count_tar,
-                target_directory = select_first([local_recon_dir])
-        }
+    call knn.knn as knn_new {
+        input:
+            tar_suffix = ".parallel.new",
+            bcl = bcl_name,
+            recon_name = validate_recon_inputs.recon_name,
+            recon_count_files = flatten([
+                flatten(select_all([recon_count_count_reads_rpu.reads_per_umi_csvs])),
+                select_all([concat_rupsb1.out, concat_rupsb2.out]),
+                recon_count_count_umis_new.count_umis_outputs
+            ]),
+            n_neighbors = n_neighbors,
+            bead = bead,
+            chunks = chunks,
+            knn_py = knn_py,
+            memory_gb = knn_memory_gb
     }
 
+#    # TODO: After testing, restore to either untarring or returning the tar
+#    if (defined(local_recon_dir)) {
+#        call untar.untar as untar {
+#            input:
+#                tar_file = knn.recon_count_tar,
+#                target_directory = select_first([local_recon_dir])
+#        }
+#    }
+#
     #if (!defined(local_recon_dir)) {
-        File opt_recon_count_tar = knn.recon_count_tar
+        File opt_recon_count_orig_tar = knn_orig.recon_count_tar
+        File opt_recon_count_new_tar = knn_new.recon_count_tar
     #}
 
     output {
         String recon_name = validate_recon_inputs.recon_name
-        File qc_pdf = recon_count_count_umis.qc_pdf
-        File? recon_count_tar = opt_recon_count_tar
+        File qc_pdf = recon_count_count_umis_orig.qc_pdf
+        File? recon_count_tar = opt_recon_count_orig_tar
+        File? recon_count_orig_tar = opt_recon_count_orig_tar
+        File? recon_count_new_tar = opt_recon_count_new_tar
     }
 }
