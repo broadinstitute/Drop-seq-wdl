@@ -57,7 +57,11 @@ task assign_cells_to_samples {
         Int cpu = 2
         Int memory_mb = 32768
         # Input is streamed using localization_optional.
-        Int disk_gb = 10 + ceil(vcf_site_fraction * vcf_type_ratio * size(vcf, "GB"))
+        # Still need space to write the temporary files.
+        Int disk_gb = 10 + ceil(
+            (vcf_site_fraction * vcf_type_ratio * size(vcf, "GB")) +
+            (2 * size(input_bam, "GB"))
+        )
         Int preemptible = 0
     }
 

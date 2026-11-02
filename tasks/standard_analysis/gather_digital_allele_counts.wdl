@@ -48,7 +48,7 @@ task gather_digital_allele_counts {
         String docker = "quay.io/broadinstitute/drop-seq_java:current"
         Int cpu = 2
         Int memory_mb = 32768
-        Int disk_gb = 10
+        Int disk_gb = 10 + 2 * ceil(size(alignment_bam, "GB"))
         Int preemptible = 0
     }
 
